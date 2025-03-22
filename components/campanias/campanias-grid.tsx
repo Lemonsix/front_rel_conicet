@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import Link from "next/link";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Loading } from "../ui/loading";
 
 export function CampaniasGrid() {
   const [campanias, setCampanias] = useState<Campania[]>([]);
@@ -125,11 +126,11 @@ export function CampaniasGrid() {
   }
 
   if (isLoading) {
-    return <div>Cargando campañas...</div>;
+    return <Loading text="Cargando campañas..." />;
   }
 
   return (
-    <div className="flex flex-col min-h-0 w-full">
+    <div className="flex flex-col min-h-0 w-full pb-20">
       <div className="flex justify-end p-4">
         <CampaniaForm onCampaniaCreada={fetchCampanias} />
       </div>

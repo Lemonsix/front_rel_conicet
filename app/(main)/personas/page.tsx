@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { PersonasTable } from "@/components/personas/personas-table"
+import { PersonasTable } from "@/components/personas/personas-table";
 
 export default function PersonasPage() {
   return (
-    <div className="container mx-auto py-6">
-      <h1 className="text-3xl font-bold mb-6">Personas</h1>
+    <div className="flex flex-col flex-1 overflow-hidden">
+      <h1 className="text-3xl font-bold p-4">Personas</h1>
       <PersonasTable />
     </div>
-  )
+  );
 }

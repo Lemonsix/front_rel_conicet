@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { EmbarcacionesTable } from "@/components/embarcaciones/embarcaciones-table"
+import { EmbarcacionesTable } from "@/components/embarcaciones/embarcaciones-table";
 
 export default function EmbarcacionesPage() {
   return (
-    <div className="container mx-auto py-6">
-      <h1 className="text-3xl font-bold mb-6">Embarcaciones</h1>
+    <div className="flex flex-col flex-1 overflow-hidden">
+      <h1 className="text-3xl font-bold p-4">Embarcaciones</h1>
       <EmbarcacionesTable />
     </div>
-  )
-}   
+  );
+}
