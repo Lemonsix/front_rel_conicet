@@ -10,17 +10,20 @@ import {
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { formatCoordinates } from "@/lib/utils/coordinates";
+import { NuevoSegmentoForm } from "@/components/segmentos/nuevo-segmento-form";
 
 interface TransectasAccordionProps {
   transectas: Transecta[];
   onTransectaOpen?: (transectaId: number) => void;
   onTransectaClose?: (transectaId: number) => void;
+  onSegmentoCreado?: () => void;
 }
 
 export function TransectasAccordion({
   transectas,
   onTransectaOpen,
   onTransectaClose,
+  onSegmentoCreado,
 }: TransectasAccordionProps) {
   const formatFecha = (fecha: Date | string) => {
     const date = typeof fecha === "string" ? parseISO(fecha) : fecha;
@@ -58,19 +61,19 @@ export function TransectasAccordion({
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Observaciones: {transecta.observaciones}
-              </p>
+              <div className="flex justify-between items-center">
+                <p className="text-sm text-muted-foreground">
+                  Observaciones: {transecta.observaciones}
+                </p>
+                <NuevoSegmentoForm
+                  transectaId={transecta.id}
+                  onSegmentoCreado={onSegmentoCreado || (() => {})}
+                />
+              </div>
               <div className="space-y-2">
                 <h4 className="font-medium">Segmentos:</h4>
                 <ul className="list-disc list-inside space-y-1">
                   {transecta.segmentos?.map((segmento) => {
-                    console.log("Datos del segmento:", {
-                      numero: segmento.numero,
-                      coordenadasInicio: segmento.coordenadasInicio,
-                      coordenadasFin: segmento.coordenadasFin,
-                      marisqueos: segmento.marisqueos?.length,
-                    });
                     return (
                       <li key={segmento.id} className="text-sm flex flex-col">
                         <div>Segmento {segmento.numero}</div>
@@ -101,6 +104,9 @@ export function TransectasAccordion({
                                   {segmento.coordenadasFin.profundidad &&
                                     ` Prof: ${segmento.coordenadasFin.profundidad}m`}
                                 </div>
+                              )}
+                              {segmento.conteo && (
+                                <div>Conteo: {segmento.conteo}</div>
                               )}
                             </>
                           )}

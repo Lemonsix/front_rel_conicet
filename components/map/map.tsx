@@ -10,6 +10,7 @@ import {
   TileLayer,
   Polyline,
 } from "react-leaflet";
+import { useTheme } from "next-themes";
 
 // Corregir el problema de los íconos de Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -28,6 +29,7 @@ interface MapProps {
 
 export function Map({ segmentos }: MapProps) {
   const golfoSanJose = { lat: -42.330728, lng: -64.315155 };
+  const { theme } = useTheme();
 
   // Agrupar segmentos por transecta
   const segmentosPorTransecta = segmentos.reduce((acc, segmento) => {
@@ -43,11 +45,15 @@ export function Map({ segmentos }: MapProps) {
       <MapContainer
         center={[golfoSanJose.lat, golfoSanJose.lng]}
         zoom={11}
-        style={{ height: "100%", width: "100%" }}
+        style={{ height: "100%", width: "100%", zIndex: 0 }}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a>'
+          url={
+            theme === "dark"
+              ? "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
+              : "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png"
+          }
         />
         {Object.values(segmentosPorTransecta).map((transectaSegmentos) => {
           // Ordenar segmentos por número
@@ -109,6 +115,9 @@ export function Map({ segmentos }: MapProps) {
                             <p>
                               Profundidad: {segmento.coordenadasFin.profundidad}
                               m
+                              {segmento.conteo && (
+                                <div>Conteo: {segmento.conteo}</div>
+                              )}
                             </p>
                           </div>
                         </Popup>
@@ -138,6 +147,9 @@ export function Map({ segmentos }: MapProps) {
                         </h3>
                         <p>
                           Profundidad: {segmento.coordenadasFin.profundidad}m
+                          {segmento.conteo && (
+                            <div>Conteo: {segmento.conteo}</div>
+                          )}
                         </p>
                       </div>
                     </Popup>
@@ -146,7 +158,7 @@ export function Map({ segmentos }: MapProps) {
               })}
               <Polyline
                 positions={puntos}
-                color="blue"
+                color={theme === "dark" ? "#fff" : "#000"}
                 weight={2}
                 opacity={0.7}
               />

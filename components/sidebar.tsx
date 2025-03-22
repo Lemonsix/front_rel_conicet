@@ -1,4 +1,12 @@
-import { Calendar, Contact, Home, Inbox, Search, Settings, Ship } from "lucide-react"
+import {
+  Calendar,
+  Contact,
+  Home,
+  Inbox,
+  Search,
+  Settings,
+  Ship,
+} from "lucide-react";
 
 import {
   Sidebar,
@@ -9,7 +17,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+  SidebarSeparator,
+} from "@/components/ui/sidebar";
+import { ThemeToggle } from "./theme-toggle";
 
 // Menu items.
 const items = [
@@ -28,8 +38,7 @@ const items = [
     url: "/embarcaciones",
     icon: Ship,
   },
- 
-]
+];
 
 export function AppSidebar() {
   return (
@@ -52,7 +61,17 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        <SidebarSeparator />
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <ThemeToggle />
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
-  )
+  );
 }

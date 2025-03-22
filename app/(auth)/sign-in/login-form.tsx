@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { cn } from "@/utils/styles";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { signIn } from "./actions";
 
 export function LoginForm({
   className,
@@ -40,16 +41,16 @@ export function LoginForm({
     setError(null);
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const result = await signIn({ email, password });
 
-      if (error) throw error;
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
 
+      // Esperamos un momento para que la sesión se establezca correctamente
+      await new Promise((resolve) => setTimeout(resolve, 100));
       router.push("/campanias");
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al iniciar sesión");
     } finally {
@@ -77,6 +78,7 @@ export function LoginForm({
           ? err.message
           : "Error al iniciar sesión con Google"
       );
+    } finally {
       setLoading(false);
     }
   };
