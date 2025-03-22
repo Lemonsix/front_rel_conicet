@@ -1,5 +1,5 @@
-export interface Embarcacion{
-    id: number;
-    nombre: string;
-    patente: string;
+export interface Embarcacion {
+  id: number;
+  nombre: string;
+  matricula: string;
 }

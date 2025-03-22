@@ -1,19 +1,23 @@
+import { Cuadrado } from "./cuadrado";
 import { Marisqueo } from "./marisqueo";
-import { Quadrat } from "./quadrat";
+import { Sustrato } from "./sustrato";
 
-export interface Segmento{
-    id: number;
-    nombre: string;
-    descripcion: string;
-    campaniaId: number;
-    marisqueos: Marisqueo[];
-    quadrats: Quadrat[];
-    waypoints: Waypoint[];
-}   
+export interface Segmento {
+  id: number;
+  numero: number;
+  largo: number;
+  profundidadInicial: number;
+  profundidadFinal: number;
+  conteo: number;
+  marisqueos: Marisqueo[];
+  cuadrados?: Cuadrado[];
+  sustrato: Sustrato;
+  waypoints?: Waypoint[];
+}
 
-export interface Waypoint{
-    id: number;
-    latitud: number;
-    longitud: number;
-    profundidad: number;
+export interface Waypoint {
+  id: number;
+  latitud: number;
+  longitud: number;
+  profundidad: number;
 }

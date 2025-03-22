@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { Suspense, useState } from "react"
+import { Suspense, useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -8,18 +8,47 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Persona } from "@/types/persona"
-import { personas as personasIniciales } from "@/data/personas"
-import { PersonaForm } from "./persona-form"
+} from "@/components/ui/table";
+import { PersonaForm } from "./persona-form";
+import { Persona } from "@/lib/types/persona";
+import { createClient } from "@/utils/supabase/client";
 
 function PersonasTableContent() {
-  const [personas, setPersonas] = useState<Persona[]>(personasIniciales)
+  const [personas, setPersonas] = useState<Persona[]>([]);
+  const supabase = createClient();
 
-  const handleAddPersona = (nuevaPersona: Omit<Persona, "id">) => {
-    const id = Math.max(...personas.map(p => p.id)) + 1
-    setPersonas([...personas, { ...nuevaPersona, id }])
-  }
+  useEffect(() => {
+    const fetchPersonas = async () => {
+      const { data, error } = await supabase
+        .from("personas")
+        .select("*")
+        .order("id", { ascending: true });
+
+      if (error) {
+        console.error("Error cargando personas:", error);
+        return;
+      }
+
+      setPersonas(data || []);
+    };
+
+    fetchPersonas();
+  }, []);
+
+  const handleAddPersona = async (nuevaPersona: Omit<Persona, "id">) => {
+    const { data, error } = await supabase
+      .from("personas")
+      .insert([nuevaPersona])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error agregando persona:", error);
+      return;
+    }
+
+    setPersonas([...personas, data]);
+  };
 
   return (
     <div className="space-y-4">
@@ -39,13 +68,13 @@ function PersonasTableContent() {
             <TableRow key={persona.id}>
               <TableCell>{persona.id}</TableCell>
               <TableCell>{persona.nombre}</TableCell>
-              <TableCell>{persona.cuit}</TableCell>
+              <TableCell>{persona.apellido}</TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }
 
 export function PersonasTable() {
@@ -55,5 +84,5 @@ export function PersonasTable() {
         <PersonasTableContent />
       </Suspense>
     </div>
-  )
-} 
+  );
+}

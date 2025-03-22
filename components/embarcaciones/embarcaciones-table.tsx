@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { Suspense, useState } from "react"
+import { Suspense, useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -8,18 +8,44 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Embarcacion } from "@/types/embarcacion"
-import { embarcaciones as embarcacionesIniciales } from "@/data/embarcaciones"
-import { EmbarcacionForm } from "./embarcacion-form"
+} from "@/components/ui/table";
+
+import { EmbarcacionForm } from "./embarcacion-form";
+import { Embarcacion } from "@/lib/types/embarcacion";
+import { createClient } from "@/utils/supabase/client";
+import { toast } from "sonner";
 
 function EmbarcacionesTableContent() {
-  const [embarcaciones, setEmbarcaciones] = useState<Embarcacion[]>(embarcacionesIniciales)
+  const [embarcaciones, setEmbarcaciones] = useState<Embarcacion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchEmbarcaciones = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("embarcaciones")
+          .select("*")
+          .order("id", { ascending: true });
+
+        if (error) throw error;
+        setEmbarcaciones(data || []);
+      } catch (error) {
+        toast.error("Error al cargar embarcaciones");
+        console.error("Error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEmbarcaciones();
+  }, []);
 
   const handleAddEmbarcacion = (nuevaEmbarcacion: Omit<Embarcacion, "id">) => {
-    const id = Math.max(...embarcaciones.map(e => e.id)) + 1
-    setEmbarcaciones([...embarcaciones, { ...nuevaEmbarcacion, id }])
-  }
+    setEmbarcaciones([...embarcaciones, nuevaEmbarcacion as Embarcacion]);
+  };
+
+  if (loading) return <div>Cargando embarcaciones...</div>;
 
   return (
     <div className="space-y-4">
@@ -31,7 +57,7 @@ function EmbarcacionesTableContent() {
           <TableRow>
             <TableHead>ID</TableHead>
             <TableHead>Nombre</TableHead>
-            <TableHead>Patente</TableHead>
+            <TableHead>Matricula</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -39,13 +65,13 @@ function EmbarcacionesTableContent() {
             <TableRow key={embarcacion.id}>
               <TableCell>{embarcacion.id}</TableCell>
               <TableCell>{embarcacion.nombre}</TableCell>
-              <TableCell>{embarcacion.patente}</TableCell>
+              <TableCell>{embarcacion.matricula}</TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }
 
 export function EmbarcacionesTable() {
@@ -55,5 +81,5 @@ export function EmbarcacionesTable() {
         <EmbarcacionesTableContent />
       </Suspense>
     </div>
-  )
-} 
+  );
+}
