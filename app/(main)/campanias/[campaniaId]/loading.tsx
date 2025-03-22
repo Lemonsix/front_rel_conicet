@@ -1,6 +1,7 @@
 "use client";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { Loading } from "@/components/ui/loading";
 
 export default function CampaniaLoading() {
   return (
@@ -21,13 +22,8 @@ export default function CampaniaLoading() {
           </div>
         </div>
       </div>
-      <div className="w-full h-full bg-slate-100 rounded-lg">
-        <div className="h-full w-full flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-sm text-muted-foreground">Cargando mapa...</p>
-          </div>
-        </div>
+      <div className="w-full h-full">
+        <Loading text="Cargando mapa..." />
       </div>
     </div>
   );

@@ -1,12 +1,4 @@
-import {
-  Calendar,
-  Contact,
-  Home,
-  Inbox,
-  Search,
-  Settings,
-  Ship,
-} from "lucide-react";
+import { Contact, Home, Ship } from "lucide-react";
 
 import {
   Sidebar,
