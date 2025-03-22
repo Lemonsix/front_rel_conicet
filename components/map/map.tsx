@@ -3,7 +3,13 @@
 import { Segmento } from "@/lib/types/segmento";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import {
+  MapContainer,
+  Marker,
+  Popup,
+  TileLayer,
+  Polyline,
+} from "react-leaflet";
 
 // Corregir el problema de los íconos de Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -23,6 +29,15 @@ interface MapProps {
 export function Map({ segmentos }: MapProps) {
   const golfoSanJose = { lat: -42.330728, lng: -64.315155 };
 
+  // Agrupar segmentos por transecta
+  const segmentosPorTransecta = segmentos.reduce((acc, segmento) => {
+    if (!acc[segmento.transectId]) {
+      acc[segmento.transectId] = [];
+    }
+    acc[segmento.transectId].push(segmento);
+    return acc;
+  }, {} as Record<number, Segmento[]>);
+
   return (
     <div className="h-[calc(100vh-4rem)] w-full">
       <MapContainer
@@ -34,23 +49,110 @@ export function Map({ segmentos }: MapProps) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {segmentos.map((segmento) => (
-          <div key={segmento.id}>
-            {segmento.waypoints?.map((waypoint) => (
-              <Marker
-                key={waypoint.id}
-                position={[waypoint.latitud, waypoint.longitud]}
-              >
-                <Popup>
-                  <div>
-                    <h3 className="font-bold">{segmento.numero}</h3>
-                    <p>Profundidad: {waypoint.profundidad}m</p>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-          </div>
-        ))}
+        {Object.values(segmentosPorTransecta).map((transectaSegmentos) => {
+          // Ordenar segmentos por número
+          const segmentosOrdenados = transectaSegmentos.sort(
+            (a, b) => a.numero - b.numero
+          );
+
+          // Crear array de puntos para la línea
+          const puntos: [number, number][] = [];
+
+          return (
+            <div key={segmentosOrdenados[0]?.transectId}>
+              {segmentosOrdenados.map((segmento, index) => {
+                if (!segmento.coordenadasInicio || !segmento.coordenadasFin)
+                  return null;
+
+                // Para el primer segmento, mostrar tanto inicio como fin
+                if (index === 0) {
+                  puntos.push([
+                    segmento.coordenadasInicio.latitud,
+                    segmento.coordenadasInicio.longitud,
+                  ]);
+                  puntos.push([
+                    segmento.coordenadasFin.latitud,
+                    segmento.coordenadasFin.longitud,
+                  ]);
+
+                  return (
+                    <div key={segmento.id}>
+                      <Marker
+                        position={[
+                          segmento.coordenadasInicio.latitud,
+                          segmento.coordenadasInicio.longitud,
+                        ]}
+                      >
+                        <Popup>
+                          <div>
+                            <h3 className="font-bold">
+                              Segmento {segmento.numero} - Inicio
+                            </h3>
+                            <p>
+                              Profundidad:{" "}
+                              {segmento.coordenadasInicio.profundidad}m
+                            </p>
+                          </div>
+                        </Popup>
+                      </Marker>
+                      <Marker
+                        position={[
+                          segmento.coordenadasFin.latitud,
+                          segmento.coordenadasFin.longitud,
+                        ]}
+                      >
+                        <Popup>
+                          <div>
+                            <h3 className="font-bold">
+                              Segmento {segmento.numero} - Fin
+                            </h3>
+                            <p>
+                              Profundidad: {segmento.coordenadasFin.profundidad}
+                              m
+                            </p>
+                          </div>
+                        </Popup>
+                      </Marker>
+                    </div>
+                  );
+                }
+
+                // Para los demás segmentos, solo mostrar el fin
+                puntos.push([
+                  segmento.coordenadasFin.latitud,
+                  segmento.coordenadasFin.longitud,
+                ]);
+
+                return (
+                  <Marker
+                    key={segmento.id}
+                    position={[
+                      segmento.coordenadasFin.latitud,
+                      segmento.coordenadasFin.longitud,
+                    ]}
+                  >
+                    <Popup>
+                      <div>
+                        <h3 className="font-bold">
+                          Segmento {segmento.numero} - Fin
+                        </h3>
+                        <p>
+                          Profundidad: {segmento.coordenadasFin.profundidad}m
+                        </p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })}
+              <Polyline
+                positions={puntos}
+                color="blue"
+                weight={2}
+                opacity={0.7}
+              />
+            </div>
+          );
+        })}
       </MapContainer>
     </div>
   );

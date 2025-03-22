@@ -9,28 +9,43 @@ import {
 } from "@/components/ui/accordion";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
+import { formatCoordinates } from "@/lib/utils/coordinates";
 
 interface TransectasAccordionProps {
   transectas: Transecta[];
+  onTransectaOpen?: (transectaId: number) => void;
+  onTransectaClose?: (transectaId: number) => void;
 }
 
-export function TransectasAccordion({ transectas }: TransectasAccordionProps) {
+export function TransectasAccordion({
+  transectas,
+  onTransectaOpen,
+  onTransectaClose,
+}: TransectasAccordionProps) {
   const formatFecha = (fecha: Date | string) => {
-    try {
-      // Si es un objeto Date, convertirlo a string ISO
-      const isoString = fecha instanceof Date ? fecha.toISOString() : fecha;
-      // Parsear el string ISO y formatear
-      return format(parseISO(isoString), "dd 'de' MMMM 'de' yyyy", {
-        locale: es,
+    const date = typeof fecha === "string" ? parseISO(fecha) : fecha;
+    return format(date, "d 'de' MMMM 'de' yyyy", { locale: es });
+  };
+
+  const handleValueChange = (value: string | undefined) => {
+    if (!value) {
+      transectas.forEach((t) => onTransectaClose?.(t.id));
+      return;
+    }
+
+    const transectaId = value.split("-")[1];
+    if (transectaId) {
+      transectas.forEach((t) => {
+        if (t.id !== parseInt(transectaId)) {
+          onTransectaClose?.(t.id);
+        }
       });
-    } catch (error) {
-      console.error("Error formateando fecha:", error);
-      return "Fecha inválida";
+      onTransectaOpen?.(parseInt(transectaId));
     }
   };
 
   return (
-    <Accordion type="single" collapsible className="w-full">
+    <Accordion type="single" collapsible onValueChange={handleValueChange}>
       {transectas.map((transecta) => (
         <AccordionItem key={transecta.id} value={`transecta-${transecta.id}`}>
           <AccordionTrigger className="text-left">
@@ -44,7 +59,7 @@ export function TransectasAccordion({ transectas }: TransectasAccordionProps) {
           <AccordionContent>
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                {transecta.observaciones}
+                Observaciones: {transecta.observaciones}
               </p>
               <div className="space-y-2">
                 <h4 className="font-medium">Segmentos:</h4>
@@ -67,24 +82,24 @@ export function TransectasAccordion({ transectas }: TransectasAccordionProps) {
                             <>
                               {segmento.coordenadasInicio && (
                                 <div>
-                                  Inicio: (
-                                  {segmento.coordenadasInicio.latitud.toFixed(
-                                    4
+                                  Inicio:{" "}
+                                  {formatCoordinates(
+                                    segmento.coordenadasInicio.latitud,
+                                    segmento.coordenadasInicio.longitud
                                   )}
-                                  ,{" "}
-                                  {segmento.coordenadasInicio.longitud.toFixed(
-                                    4
-                                  )}
-                                  ) Prof:{" "}
-                                  {segmento.coordenadasInicio.profundidad}m
+                                  {segmento.coordenadasInicio.profundidad &&
+                                    ` Prof: ${segmento.coordenadasInicio.profundidad}m`}
                                 </div>
                               )}
                               {segmento.coordenadasFin && (
                                 <div>
-                                  Fin: (
-                                  {segmento.coordenadasFin.latitud.toFixed(4)},{" "}
-                                  {segmento.coordenadasFin.longitud.toFixed(4)})
-                                  Prof: {segmento.coordenadasFin.profundidad}m
+                                  Fin:{" "}
+                                  {formatCoordinates(
+                                    segmento.coordenadasFin.latitud,
+                                    segmento.coordenadasFin.longitud
+                                  )}
+                                  {segmento.coordenadasFin.profundidad &&
+                                    ` Prof: ${segmento.coordenadasFin.profundidad}m`}
                                 </div>
                               )}
                             </>
