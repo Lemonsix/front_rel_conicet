@@ -10,7 +10,7 @@ export default function MainLayout({
   return (
     <SidebarProvider>
       <AppSidebar />
-      <main className="w-full h-full">
+      <main className="h-screen w-full">
         <SidebarTrigger />
         {children}
       </main>

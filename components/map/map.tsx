@@ -27,7 +27,7 @@ export function Map({ segmentos }: MapProps) {
     <div className="h-[calc(100vh-4rem)] w-full">
       <MapContainer
         center={[golfoSanJose.lat, golfoSanJose.lng]}
-        zoom={13}
+        zoom={11}
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer

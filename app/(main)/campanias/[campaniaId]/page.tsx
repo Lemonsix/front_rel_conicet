@@ -3,6 +3,7 @@ import { Transecta } from "@/lib/types/transecta";
 import { createClient } from "@/utils/supabase/server";
 import { notFound } from "next/navigation";
 import { Campania } from "@/lib/types/campania";
+import { Waypoint } from "@/lib/types/segmento";
 
 // Habilitar ISR con revalidación cada 1 hora
 export const revalidate = 3600;
@@ -45,6 +46,11 @@ interface SegmentoDBData {
     descripcion: string;
   }>;
   conteo: number;
+  est_minima: number;
+  coordenadas_inicio: string;
+  coordenadas_fin: string;
+  tiene_marisqueo: string;
+  tiene_cuadrados: string;
   marisqueos: MarisqueoDBData[];
   cuadrados: CuadradoDBData[];
 }
@@ -81,6 +87,35 @@ export default async function CampaniaPage({
   params: { campaniaId: string };
 }) {
   const supabase = await createClient();
+
+  // Función para parsear coordenadas WKT
+  const parseWKTPoint = (
+    wkt: string,
+    profundidad: number
+  ): Waypoint | undefined => {
+    try {
+      // Extraer la parte hexadecimal después del SRID
+      const hexPart = wkt.substring(18); // Saltamos '0101000020E6100000'
+
+      // Dividir en dos partes de 16 caracteres (8 bytes cada una)
+      const lonHex = hexPart.substring(0, 16);
+      const latHex = hexPart.substring(16, 32);
+
+      // Convertir de hex a buffer y luego a float64
+      const buf1 = Buffer.from(lonHex, "hex");
+      const buf2 = Buffer.from(latHex, "hex");
+
+      // Leer como double little-endian
+      const lon = buf1.readDoubleLE(0);
+      const lat = buf2.readDoubleLE(0);
+
+      console.log("Parsed coordinates:", { lat, lon, profundidad });
+      return { latitud: lat, longitud: lon, profundidad };
+    } catch (error) {
+      console.error("Error parsing WKT:", error, "for input:", wkt);
+      return undefined;
+    }
+  };
 
   // Obtener datos de la campaña
   const { data: campaniaData, error: campaniaError } = await supabase
@@ -136,7 +171,7 @@ export default async function CampaniaPage({
         apellido,
         rol
       ),
-      segmentos(
+      segmentos!inner(
         id,
         numero,
         largo,
@@ -148,6 +183,11 @@ export default async function CampaniaPage({
           descripcion
         ),
         conteo,
+        est_minima,
+        coordenadas_inicio,
+        coordenadas_fin,
+        tiene_marisqueo,
+        tiene_cuadrados,
         marisqueos!marisqueos_fk_segmentos(
           id,
           segmento_id,
@@ -182,6 +222,11 @@ export default async function CampaniaPage({
     notFound();
   }
 
+  console.log(
+    "Datos del primer segmento de la primera transecta:",
+    JSON.stringify(transectasData?.[0]?.segmentos?.[0], null, 2)
+  );
+
   // Mapear los datos a los tipos correctos
   const campania: Campania = {
     id: campaniaData.id,
@@ -214,39 +259,51 @@ export default async function CampaniaPage({
       embarcacion: t.embarcacion?.[0],
       buzo: t.buzo?.[0],
       segmentos:
-        t.segmentos?.map((s) => ({
-          id: s.id,
-          numero: s.numero,
-          largo: s.largo,
-          profundidadInicial: s.profundidad_inicial,
-          profundidadFinal: s.profundidad_final,
-          sustrato: s.sustrato[0],
-          conteo: s.conteo,
-          marisqueos: s.marisqueos.map((m) => ({
-            id: m.id,
-            segmentoId: m.segmento_id,
-            timestamp: m.timestamp,
-            tiempo: m.tiempo,
-            coordenadas: m.coordenadas,
-            tieneMuestreo: m.tiene_muestreo,
-            buzoId: m.buzo_id,
-            NroCaptura: m.n_captura,
-            PesoMuestra: m.peso_muestra,
-          })),
-          cuadrados: s.cuadrados.map((c) => ({
-            id: c.id,
-            segmentoId: c.segmento_id,
-            replica: c.replica,
-            coordenadasInicio: c.coordenadas_inicio,
-            coordenadasFin: c.coordenadas_fin,
-            profundidadInicio: c.profundidad_inicio,
-            profundidadFin: c.profundidad_fin,
-            tieneMuestreo: c.tiene_muestreo,
-            conteo: c.conteo,
-            tamanio: c.tamanio,
-            timestamp: c.timestamp,
-          })),
-        })) || [],
+        t.segmentos?.map((s) => {
+          return {
+            id: s.id,
+            transectId: t.id,
+            numero: s.numero,
+            largo: s.largo,
+            profundidadInicial: s.profundidad_inicial,
+            profundidadFinal: s.profundidad_final,
+            sustrato: s.sustrato[0],
+            conteo: s.conteo,
+            estMinima: s.est_minima || 0,
+            tieneMarisqueo: s.tiene_marisqueo === "SI",
+            tieneCuadrados: s.tiene_cuadrados === "SI",
+            coordenadasInicio: s.coordenadas_inicio
+              ? parseWKTPoint(s.coordenadas_inicio, s.profundidad_inicial)
+              : undefined,
+            coordenadasFin: s.coordenadas_fin
+              ? parseWKTPoint(s.coordenadas_fin, s.profundidad_final)
+              : undefined,
+            marisqueos: s.marisqueos.map((m) => ({
+              id: m.id,
+              segmentoId: m.segmento_id,
+              timestamp: m.timestamp,
+              tiempo: m.tiempo,
+              coordenadas: m.coordenadas,
+              tieneMuestreo: m.tiene_muestreo,
+              buzoId: m.buzo_id,
+              NroCaptura: m.n_captura,
+              PesoMuestra: m.peso_muestra,
+            })),
+            cuadrados: s.cuadrados.map((c) => ({
+              id: c.id,
+              segmentoId: c.segmento_id,
+              replica: c.replica,
+              coordenadasInicio: c.coordenadas_inicio,
+              coordenadasFin: c.coordenadas_fin,
+              profundidadInicio: c.profundidad_inicio,
+              profundidadFin: c.profundidad_fin,
+              tieneMuestreo: c.tiene_muestreo,
+              conteo: c.conteo,
+              tamanio: c.tamanio,
+              timestamp: c.timestamp,
+            })),
+          };
+        }) || [],
     })
   );
 

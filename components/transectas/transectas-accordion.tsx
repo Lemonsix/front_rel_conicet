@@ -49,14 +49,50 @@ export function TransectasAccordion({ transectas }: TransectasAccordionProps) {
               <div className="space-y-2">
                 <h4 className="font-medium">Segmentos:</h4>
                 <ul className="list-disc list-inside space-y-1">
-                  {transecta.segmentos?.map((segmento) => (
-                    <li key={segmento.id} className="text-sm">
-                      {segmento.numero}
-                      <span className="text-muted-foreground ml-2">
-                        ({segmento.waypoints?.length} waypoints)
-                      </span>
-                    </li>
-                  ))}
+                  {transecta.segmentos?.map((segmento) => {
+                    console.log("Datos del segmento:", {
+                      numero: segmento.numero,
+                      coordenadasInicio: segmento.coordenadasInicio,
+                      coordenadasFin: segmento.coordenadasFin,
+                      marisqueos: segmento.marisqueos?.length,
+                    });
+                    return (
+                      <li key={segmento.id} className="text-sm flex flex-col">
+                        <div>Segmento {segmento.numero}</div>
+                        <div className="text-muted-foreground ml-4 text-xs">
+                          {!segmento.coordenadasInicio &&
+                          !segmento.coordenadasFin ? (
+                            <span>Sin coordenadas registradas</span>
+                          ) : (
+                            <>
+                              {segmento.coordenadasInicio && (
+                                <div>
+                                  Inicio: (
+                                  {segmento.coordenadasInicio.latitud.toFixed(
+                                    4
+                                  )}
+                                  ,{" "}
+                                  {segmento.coordenadasInicio.longitud.toFixed(
+                                    4
+                                  )}
+                                  ) Prof:{" "}
+                                  {segmento.coordenadasInicio.profundidad}m
+                                </div>
+                              )}
+                              {segmento.coordenadasFin && (
+                                <div>
+                                  Fin: (
+                                  {segmento.coordenadasFin.latitud.toFixed(4)},{" "}
+                                  {segmento.coordenadasFin.longitud.toFixed(4)})
+                                  Prof: {segmento.coordenadasFin.profundidad}m
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             </div>

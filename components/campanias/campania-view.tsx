@@ -12,7 +12,9 @@ interface CampaniaViewProps {
 
 export function CampaniaView({ campania, transectas }: CampaniaViewProps) {
   // Obtener todos los segmentos de todas las transectas
-  const todosLosSegmentos = transectas.flatMap((t) => t.segmentos);
+  const todosLosSegmentos = transectas
+    .flatMap((t) => t.segmentos || [])
+    .filter(Boolean);
 
   return (
     <div className="grid grid-cols-2 gap-4 w-full h-[calc(100vh-4rem)] overflow-hidden">

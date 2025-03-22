@@ -4,20 +4,24 @@ import { Sustrato } from "./sustrato";
 
 export interface Segmento {
   id: number;
+  transectId: number; // para mantener la relación con transectas clara
   numero: number;
-  largo: number;
-  profundidadInicial: number;
-  profundidadFinal: number;
-  conteo: number;
-  marisqueos: Marisqueo[];
+  largo: number; // nullable en DB, por ende opcional
+  profundidadInicial?: number;
+  profundidadFinal?: number;
+  conteo?: number;
+  tieneMarisqueo?: boolean; // preferible boolean en lugar de bpchar
+  tieneCuadrados?: boolean;
+  estMinima: number;
+  coordenadasInicio?: Waypoint;
+  coordenadasFin?: Waypoint;
+  marisqueos?: Marisqueo[];
   cuadrados?: Cuadrado[];
-  sustrato: Sustrato;
-  waypoints?: Waypoint[];
+  sustrato?: Sustrato;
 }
 
 export interface Waypoint {
-  id: number;
   latitud: number;
   longitud: number;
-  profundidad: number;
+  profundidad?: number;
 }
