@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/lib/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
 export async function createPersonaAction(formData: {
@@ -38,6 +38,21 @@ export async function getPersonasAction() {
     `
     )
     .order("id", { ascending: true });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { data };
+}
+
+export async function getPersonasByRolAction(rol: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("personas")
+    .select("id, nombre, apellido")
+    .eq("rol", rol);
 
   if (error) {
     return { error: error.message };

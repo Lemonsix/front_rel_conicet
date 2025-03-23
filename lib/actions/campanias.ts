@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/lib/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
 export async function createCampaniaAction(formData: {
@@ -106,7 +106,7 @@ export async function getCampaniaByIdAction(campaniaId: string) {
         apellido,
         rol
       ),
-      segmentos!inner(
+      segmentos(
         id,
         numero,
         largo,
@@ -157,79 +157,4 @@ export async function getCampaniaByIdAction(campaniaId: string) {
   }
 
   return { data: { campania: campaniaData, transectas: transectasData } };
-}
-
-export async function createTransectaAction(formData: {
-  nombre: string;
-  observaciones?: string;
-  fecha: string;
-  hora_inicio: string;
-  hora_fin: string;
-  profundidad_inicial: number;
-  orientacion: string;
-  embarcacion_id?: number;
-  buzo_id?: number;
-  campania_id: number;
-}) {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("transectas")
-    .insert([formData])
-    .select()
-    .single();
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  revalidatePath(`/campanias/${formData.campania_id}`);
-  return { data };
-}
-
-export async function getEmbarcacionesAction() {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("embarcaciones")
-    .select("id, nombre, matricula");
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  return { data };
-}
-
-export async function getBuzosAction() {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("personas")
-    .select("id, nombre, apellido, rol")
-    .eq("rol", "BUZO");
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  return { data };
-}
-
-export async function getNombresTransectasAction() {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("transectas")
-    .select("nombre")
-    .order("nombre");
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  // Obtener nombres únicos
-  const nombresUnicos = [...new Set(data.map((t) => t.nombre))];
-
-  return { data: nombresUnicos };
 }

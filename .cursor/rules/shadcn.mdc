@@ -1,7 +1,7 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 #Reglas de Shadcn
 - No se pueden editar los componentes de Shadcn bajo ninguna circunstancia

@@ -1,5 +1,3 @@
-"use client";
-
 import { Segmento } from "@/lib/types/segmento";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -9,23 +7,38 @@ import {
   Popup,
   TileLayer,
   Polyline,
+  useMap,
 } from "react-leaflet";
 import { useTheme } from "next-themes";
 
-interface IconDefault extends L.Icon.Default {
-  _getIconUrl?: string;
-}
-
-// Corregir el problema de los íconos de Leaflet
-delete (L.Icon.Default.prototype as IconDefault)._getIconUrl;
-L.Icon.Default.mergeOptions({
+// Configurar el ícono del marcador
+const icon = L.icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   iconRetinaUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-  iconUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+  shadowAnchor: [12, 41],
+  tooltipAnchor: [16, -28],
 });
+
+// Componente para ajustar los bounds
+function SetBounds() {
+  const map = useMap();
+  const gulfBounds = L.latLngBounds(
+    [-42.43, -64.65], // Suroeste
+    [-42.19, -64.02] // Noreste
+  );
+
+  // Ajusta los límites y el zoom inicial
+  map.setMaxBounds(gulfBounds);
+  map.fitBounds(gulfBounds);
+
+  return null;
+}
 
 interface MapProps {
   segmentos: Segmento[];
@@ -35,7 +48,6 @@ export function Map({ segmentos }: MapProps) {
   const golfoSanJose = { lat: -42.330728, lng: -64.315155 };
   const { theme } = useTheme();
 
-  // Agrupar segmentos por transecta
   const segmentosPorTransecta = segmentos.reduce((acc, segmento) => {
     if (!acc[segmento.transectId]) {
       acc[segmento.transectId] = [];
@@ -50,7 +62,9 @@ export function Map({ segmentos }: MapProps) {
         center={[golfoSanJose.lat, golfoSanJose.lng]}
         zoom={11}
         style={{ height: "100%", width: "100%", zIndex: 0 }}
+        maxBoundsViscosity={1.0} // Hace que los límites sean "pegajosos"
       >
+        <SetBounds /> {/* Componente para ajustar los bounds */}
         <TileLayer
           url={
             theme === "dark"
@@ -59,12 +73,9 @@ export function Map({ segmentos }: MapProps) {
           }
         />
         {Object.values(segmentosPorTransecta).map((transectaSegmentos) => {
-          // Ordenar segmentos por número
           const segmentosOrdenados = transectaSegmentos.sort(
             (a, b) => a.numero - b.numero
           );
-
-          // Crear array de puntos para la línea
           const puntos: [number, number][] = [];
 
           return (
@@ -73,7 +84,6 @@ export function Map({ segmentos }: MapProps) {
                 if (!segmento.coordenadasInicio || !segmento.coordenadasFin)
                   return null;
 
-                // Para el primer segmento, mostrar tanto inicio como fin
                 if (index === 0) {
                   puntos.push([
                     segmento.coordenadasInicio.latitud,
@@ -91,6 +101,7 @@ export function Map({ segmentos }: MapProps) {
                           segmento.coordenadasInicio.latitud,
                           segmento.coordenadasInicio.longitud,
                         ]}
+                        icon={icon}
                       >
                         <Popup>
                           <div>
@@ -109,6 +120,7 @@ export function Map({ segmentos }: MapProps) {
                           segmento.coordenadasFin.latitud,
                           segmento.coordenadasFin.longitud,
                         ]}
+                        icon={icon}
                       >
                         <Popup>
                           <div>
@@ -131,7 +143,6 @@ export function Map({ segmentos }: MapProps) {
                   );
                 }
 
-                // Para los demás segmentos, solo mostrar el fin
                 puntos.push([
                   segmento.coordenadasFin.latitud,
                   segmento.coordenadasFin.longitud,
@@ -144,6 +155,7 @@ export function Map({ segmentos }: MapProps) {
                       segmento.coordenadasFin.latitud,
                       segmento.coordenadasFin.longitud,
                     ]}
+                    icon={icon}
                   >
                     <Popup>
                       <div>

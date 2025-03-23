@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
+import { createClient } from "@/lib/utils/supabase/server";
 
 interface SetPasswordFormProps extends React.ComponentPropsWithoutRef<"div"> {
   token: string;
@@ -43,7 +43,7 @@ export function SetPasswordForm({
     }
 
     try {
-      const supabase = createClient();
+      const supabase = await createClient();
       const refresh_token = searchParams.get("refresh_token");
 
       // Establecemos la sesión con el token de acceso y refresh token

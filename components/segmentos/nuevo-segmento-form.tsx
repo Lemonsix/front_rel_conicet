@@ -11,6 +11,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -24,11 +25,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CoordenadaInput } from "@/components/coordenadas_input";
 import {
+  calcularDistanciaHaversine,
+  checkSegmentoNumberAvailabilityAction,
   createSegmentoAction,
   getSustratosAction,
+  getUltimoSegmentoAction,
 } from "@/lib/actions/segmentos";
+import { Segmento } from "@/lib/types/segmento";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -37,19 +41,34 @@ import * as z from "zod";
 
 // Definir el esquema de validación
 const formSchema = z.object({
-  latitud: z.object({
-    grados: z.number().min(0).max(90),
-    minutos: z.number().min(0).max(59),
-    segundos: z.number().min(0).max(59.99),
-    direccion: z.enum(["N", "S"]),
+  numero: z.number().min(1, "El número de segmento debe ser mayor a 0"),
+  coordenadas_inicio: z.object({
+    latitud: z.object({
+      minutos: z.number().min(0).max(59),
+      segundos: z.number().min(0).max(59.99),
+    }),
+    longitud: z.object({
+      minutos: z.number().min(0).max(59),
+      segundos: z.number().min(0).max(59.99),
+    }),
   }),
-  longitud: z.object({
-    grados: z.number().min(0).max(180),
-    minutos: z.number().min(0).max(59),
-    segundos: z.number().min(0).max(59.99),
-    direccion: z.enum(["E", "W"]),
+  coordenadas_fin: z.object({
+    latitud: z.object({
+      minutos: z.number().min(0).max(59),
+      segundos: z.number().min(0).max(59.99),
+    }),
+    longitud: z.object({
+      minutos: z.number().min(0).max(59),
+      segundos: z.number().min(0).max(59.99),
+    }),
   }),
-  profundidad: z.number().min(0, "La profundidad debe ser mayor o igual a 0"),
+  profundidad_final: z
+    .number()
+    .min(0, "La profundidad debe ser mayor o igual a 0"),
+  profundidad_inicial: z
+    .number()
+    .min(0, "La profundidad debe ser mayor o igual a 0")
+    .optional(),
   conteo: z.number().min(0, "El conteo debe ser mayor o igual a 0"),
   sustratoId: z.string().min(1, "El sustrato es requerido"),
 });
@@ -74,23 +93,36 @@ export function NuevoSegmentoForm({
   const [sustratos, setSustratos] = useState<Sustrato[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [numeroDisponible, setNumeroDisponible] = useState(true);
+  const [esPrimerSegmento, setEsPrimerSegmento] = useState(true);
+  const [ultimoSegmento, setUltimoSegmento] = useState<Segmento | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      latitud: {
-        grados: 0,
-        minutos: 0,
-        segundos: 0,
-        direccion: "S",
+      numero: 1,
+      coordenadas_inicio: {
+        latitud: {
+          minutos: 0,
+          segundos: 0,
+        },
+        longitud: {
+          minutos: 0,
+          segundos: 0,
+        },
       },
-      longitud: {
-        grados: 0,
-        minutos: 0,
-        segundos: 0,
-        direccion: "W",
+      coordenadas_fin: {
+        latitud: {
+          minutos: 0,
+          segundos: 0,
+        },
+        longitud: {
+          minutos: 0,
+          segundos: 0,
+        },
       },
-      profundidad: 0,
+      profundidad_final: 0,
+      profundidad_inicial: 0,
       conteo: 0,
       sustratoId: "",
     },
@@ -111,27 +143,107 @@ export function NuevoSegmentoForm({
     fetchSustratos();
   }, []);
 
+  useEffect(() => {
+    const checkPrimerSegmento = async () => {
+      const result = await getUltimoSegmentoAction(transectaId);
+      setEsPrimerSegmento(!result.data);
+      if (result.data) {
+        setUltimoSegmento(result.data);
+      }
+    };
+    checkPrimerSegmento();
+  }, [transectaId]);
+
+  const checkNumeroDisponible = async (numero: number) => {
+    const result = await checkSegmentoNumberAvailabilityAction(
+      transectaId,
+      numero
+    );
+    if (result.error) {
+      toast.error("Error al verificar disponibilidad del número");
+      return;
+    }
+    setNumeroDisponible(result.available ?? true);
+  };
+
   const onSubmit = async (values: FormValues) => {
+    if (!numeroDisponible) {
+      toast.error("El número de segmento ya está en uso");
+      return;
+    }
+
     setLoading(true);
     try {
-      // Convertir coordenadas sexagesimales a decimales
-      const latDecimal = coordenadaToDecimal(values.latitud);
-      const lonDecimal = coordenadaToDecimal(values.longitud);
+      // Coordenadas fijas con minutos y segundos editables
+      const latDecimal =
+        -42 -
+        values.coordenadas_fin.latitud.minutos / 60 -
+        values.coordenadas_fin.latitud.segundos / 3600;
+      const lonDecimal =
+        -64 -
+        values.coordenadas_fin.longitud.minutos / 60 -
+        values.coordenadas_fin.longitud.segundos / 3600;
 
-      if (latDecimal === null || lonDecimal === null) {
-        toast.error("Error al convertir las coordenadas");
-        return;
+      // Crear el punto WKT para las coordenadas de fin
+      const wktPointFin = `SRID=4326;POINT(${lonDecimal} ${latDecimal})`;
+
+      let wktPointInicio: string;
+      let largo = 0;
+
+      if (esPrimerSegmento) {
+        // Si es el primer segmento, calcular las coordenadas de inicio
+        const latInicioDecimal =
+          -42 -
+          values.coordenadas_inicio.latitud.minutos / 60 -
+          values.coordenadas_inicio.latitud.segundos / 3600;
+        const lonInicioDecimal =
+          -64 -
+          values.coordenadas_inicio.longitud.minutos / 60 -
+          values.coordenadas_inicio.longitud.segundos / 3600;
+
+        wktPointInicio = `SRID=4326;POINT(${lonInicioDecimal} ${latInicioDecimal})`;
+
+        // Calcular el largo entre los puntos de inicio y fin
+        largo = await calcularDistanciaHaversine(
+          latInicioDecimal,
+          lonInicioDecimal,
+          latDecimal,
+          lonDecimal
+        );
+      } else {
+        // Si no es el primer segmento, usar las coordenadas del segmento anterior
+        const ultimoSegmento = await getUltimoSegmentoAction(transectaId);
+        if (ultimoSegmento.data?.coordenadasFin) {
+          // Convertir el Waypoint a string WKT
+          wktPointInicio = `SRID=4326;POINT(${ultimoSegmento.data.coordenadasFin.longitud} ${ultimoSegmento.data.coordenadasFin.latitud})`;
+
+          // Calcular el largo entre el punto final del segmento anterior y el punto final del nuevo segmento
+          largo = await calcularDistanciaHaversine(
+            ultimoSegmento.data.coordenadasFin.latitud,
+            ultimoSegmento.data.coordenadasFin.longitud,
+            latDecimal,
+            lonDecimal
+          );
+        } else {
+          throw new Error(
+            "No se encontraron las coordenadas del segmento anterior"
+          );
+        }
       }
 
-      // Crear el punto WKT
-      const wktPoint = `SRID=4326;POINT(${lonDecimal} ${latDecimal})`;
-
       const result = await createSegmentoAction({
-        transect_id: transectaId,
-        coordenadas_fin: wktPoint,
-        profundidad_final: values.profundidad,
+        transecta_id: transectaId,
+        numero: values.numero,
+        coordenadas_inicio: wktPointInicio,
+        coordenadas_fin: wktPointFin,
+        profundidad_final: values.profundidad_final,
+        profundidad_inicial: esPrimerSegmento
+          ? values.profundidad_inicial
+          : undefined,
         sustrato_id: parseInt(values.sustratoId),
         conteo: values.conteo,
+        largo: largo,
+        est_minima: 0,
       });
 
       if (result.error) {
@@ -152,22 +264,6 @@ export function NuevoSegmentoForm({
     }
   };
 
-  // Función para convertir coordenadas sexagesimales a decimales
-  const coordenadaToDecimal = (coord: {
-    grados: number;
-    minutos: number;
-    segundos: number;
-    direccion: string;
-  }): number | null => {
-    let decimal = coord.grados + coord.minutos / 60 + coord.segundos / 3600;
-
-    if (coord.direccion === "S" || coord.direccion === "W") {
-      decimal = -decimal;
-    }
-
-    return decimal;
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -178,98 +274,429 @@ export function NuevoSegmentoForm({
           <DialogTitle>Agregar Nuevo Segmento</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="latitud"
-              render={({ field }) => (
-                <CoordenadaInput
-                  label="Latitud"
-                  field={field}
-                  direccionOptions={["N", "S"]}
-                />
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="longitud"
-              render={({ field }) => (
-                <CoordenadaInput
-                  label="Longitud"
-                  field={field}
-                  direccionOptions={["E", "W"]}
-                />
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="profundidad"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Profundidad (m)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      {...field}
-                      onChange={(e) =>
-                        field.onChange(parseFloat(e.target.value))
-                      }
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="sustratoId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Sustrato</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="numero"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Número de Segmento</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar sustrato" />
-                      </SelectTrigger>
+                      <Input
+                        type="number"
+                        {...field}
+                        onChange={(e) => {
+                          const value = Number.parseInt(e.target.value);
+                          field.onChange(value);
+                          checkNumeroDisponible(value);
+                        }}
+                      />
                     </FormControl>
-                    <SelectContent>
-                      {sustratos.map((sustrato) => (
-                        <SelectItem
-                          key={sustrato.id}
-                          value={sustrato.id.toString()}
-                        >
-                          {`${sustrato.codigo} - ${sustrato.descripcion}`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="conteo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Conteo</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                    <FormMessage />
+                    {!numeroDisponible && (
+                      <p className="text-sm text-destructive">
+                        Este número ya está en uso
+                      </p>
+                    )}
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="sustratoId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Sustrato</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar sustrato" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {sustratos.map((sustrato) => (
+                          <SelectItem
+                            key={sustrato.id}
+                            value={sustrato.id.toString()}
+                          >
+                            {`${sustrato.codigo} - ${sustrato.descripcion}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Punto de Inicio */}
+            <div className="border rounded-lg p-4 bg-muted/20">
+              <div className="flex items-center justify-between mb-3">
+                <FormLabel className="text-lg font-semibold">
+                  Punto de Inicio
+                </FormLabel>
+              </div>
+
+              {esPrimerSegmento ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-24">
+                  {/* Coordenadas de Inicio */}
+                  <div className="space-y-4">
+                    {/* Latitud Inicio */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1">
+                        <span className="text-base font-medium">42°</span>
+                        <FormField
+                          control={form.control}
+                          name="coordenadas_inicio.latitud.minutos"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  className="w-20 text-center"
+                                  {...field}
+                                  onChange={(e) =>
+                                    field.onChange(
+                                      Number.parseInt(e.target.value)
+                                    )
+                                  }
+                                />
+                              </FormControl>
+                              <FormDescription className="text-center">
+                                min
+                              </FormDescription>
+                            </FormItem>
+                          )}
+                        />
+                        <span className="text-base">'</span>
+                        <FormField
+                          control={form.control}
+                          name="coordenadas_inicio.latitud.segundos"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  className="w-24 text-center"
+                                  {...field}
+                                  onChange={(e) =>
+                                    field.onChange(
+                                      Number.parseFloat(e.target.value)
+                                    )
+                                  }
+                                />
+                              </FormControl>
+                              <FormDescription className="text-center">
+                                seg
+                              </FormDescription>
+                            </FormItem>
+                          )}
+                        />
+                        <span className="text-nowrap">"S</span>
+                      </div>
+                    </div>
+
+                    {/* Longitud Inicio */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1">
+                        <span className="text-base font-medium">64°</span>
+                        <FormField
+                          control={form.control}
+                          name="coordenadas_inicio.longitud.minutos"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  className="w-20 text-center"
+                                  {...field}
+                                  onChange={(e) =>
+                                    field.onChange(
+                                      Number.parseInt(e.target.value)
+                                    )
+                                  }
+                                />
+                              </FormControl>
+                              <FormDescription className="text-center">
+                                min
+                              </FormDescription>
+                            </FormItem>
+                          )}
+                        />
+                        <span className="text-base">'</span>
+                        <FormField
+                          control={form.control}
+                          name="coordenadas_inicio.longitud.segundos"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  className="w-24 text-center"
+                                  {...field}
+                                  onChange={(e) =>
+                                    field.onChange(
+                                      Number.parseFloat(e.target.value)
+                                    )
+                                  }
+                                />
+                              </FormControl>
+                              <FormDescription className="text-center">
+                                seg
+                              </FormDescription>
+                            </FormItem>
+                          )}
+                        />
+                        <span className="text-nowrap">"O</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Profundidad Inicial */}
+                  <div className="flex flex-col justify-center">
+                    <FormField
+                      control={form.control}
+                      name="profundidad_inicial"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Profundidad Inicial</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              className="text-center"
+                              {...field}
+                              onChange={(e) =>
+                                field.onChange(
+                                  Number.parseFloat(e.target.value)
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormDescription className="text-center">
+                            metros
+                          </FormDescription>
+                        </FormItem>
+                      )}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-24">
+                  {/* Coordenadas del segmento anterior */}
+                  <div className="space-y-4">
+                    <div className="text-sm text-muted-foreground">
+                      Coordenadas del segmento anterior:
+                    </div>
+                    <div className="font-mono">
+                      {ultimoSegmento?.coordenadasFin && (
+                        <>
+                          {ultimoSegmento.coordenadasFin.latitud}° S,{" "}
+                          {ultimoSegmento.coordenadasFin.longitud}° O
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Profundidad del segmento anterior */}
+                  <div className="flex flex-col justify-center">
+                    <div className="text-sm text-muted-foreground">
+                      Profundidad del segmento anterior:
+                    </div>
+                    <div className="font-mono text-center">
+                      {ultimoSegmento?.profundidadFinal} metros
+                    </div>
+                  </div>
+                </div>
               )}
-            />
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Guardando..." : "Guardar"}
-            </Button>
+            </div>
+
+            {/* Punto de Fin */}
+            <div className="border rounded-lg p-4 bg-muted/20">
+              <div className="flex items-center justify-between mb-3">
+                <FormLabel className="text-lg font-semibold">
+                  Punto de Fin
+                </FormLabel>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-24">
+                {/* Coordenadas de Fin */}
+                <div className="space-y-4">
+                  {/* Latitud Fin */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1">
+                      <span className="text-base font-medium">42°</span>
+                      <FormField
+                        control={form.control}
+                        name="coordenadas_fin.latitud.minutos"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                className="w-20 text-center"
+                                {...field}
+                                onChange={(e) =>
+                                  field.onChange(
+                                    Number.parseInt(e.target.value)
+                                  )
+                                }
+                              />
+                            </FormControl>
+                            <FormDescription className="text-center">
+                              min
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
+                      <span className="text-base">'</span>
+                      <FormField
+                        control={form.control}
+                        name="coordenadas_fin.latitud.segundos"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                className="w-24 text-center"
+                                {...field}
+                                onChange={(e) =>
+                                  field.onChange(
+                                    Number.parseFloat(e.target.value)
+                                  )
+                                }
+                              />
+                            </FormControl>
+                            <FormDescription className="text-center">
+                              seg
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
+                      <span className="text-nowrap">" S</span>
+                    </div>
+                  </div>
+
+                  {/* Longitud Fin */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1">
+                      <span className="text-base font-medium">64°</span>
+                      <FormField
+                        control={form.control}
+                        name="coordenadas_fin.longitud.minutos"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                className="w-20 text-center"
+                                {...field}
+                                onChange={(e) =>
+                                  field.onChange(
+                                    Number.parseInt(e.target.value)
+                                  )
+                                }
+                              />
+                            </FormControl>
+                            <FormDescription className="text-center">
+                              min
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
+                      <span className="text-base">'</span>
+                      <FormField
+                        control={form.control}
+                        name="coordenadas_fin.longitud.segundos"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                className="w-24 text-center"
+                                {...field}
+                                onChange={(e) =>
+                                  field.onChange(
+                                    Number.parseFloat(e.target.value)
+                                  )
+                                }
+                              />
+                            </FormControl>
+                            <FormDescription className="text-center">
+                              seg
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
+                      <span className="text-nowrap">" O</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Profundidad Final */}
+                <div className="flex flex-col justify-center">
+                  <FormField
+                    control={form.control}
+                    name="profundidad_final"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Profundidad Final</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            className="text-center"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(Number.parseFloat(e.target.value))
+                            }
+                          />
+                        </FormControl>
+                        <FormDescription className="text-center">
+                          metros
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Conteo */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="conteo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Conteo</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(Number.parseInt(e.target.value))
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex items-end">
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Guardando..." : "Guardar"}
+                </Button>
+              </div>
+            </div>
           </form>
         </Form>
       </DialogContent>

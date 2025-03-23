@@ -1,0 +1,7 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Convenciones sobre bases de datos SQL
+- Los nombre siempre deben estar en snake case.

@@ -1,7 +1,8 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/lib/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { Transecta } from "../types/transecta";
 
 export async function getTransectasByCampaniaAction(campaniaId: number) {
   const supabase = await createClient();
@@ -32,7 +33,7 @@ export async function getTransectasByCampaniaAction(campaniaId: number) {
         apellido,
         rol
       ),
-      segmentos!inner(
+      segmentos(
         id,
         numero,
         largo,
@@ -84,4 +85,49 @@ export async function getTransectasByCampaniaAction(campaniaId: number) {
 
   revalidatePath(`/campanias/${campaniaId}`);
   return { data };
+}
+
+export async function createTransectaAction(formData: {
+  nombre: string;
+  observaciones?: string;
+  fecha: string;
+  hora_inicio: string;
+  hora_fin: string;
+  orientacion: string;
+  embarcacion_id?: number;
+  buzo_id?: number;
+  campania_id: number;
+}) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("transectas")
+    .insert([formData])
+    .select()
+    .single();
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/campanias/${formData.campania_id}`);
+  return { data };
+}
+
+export async function getNombresTransectasAction() {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("transectas_templates")
+    .select("nombre")
+    .order("nombre");
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  // Obtener nombres únicos
+  const nombresUnicos = [...new Set(data.map((t) => t.nombre))];
+
+  return { data: nombresUnicos };
 }

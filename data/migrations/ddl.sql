@@ -1,6 +1,6 @@
 CREATE TABLE public.segmentos (
     id int4 NOT NULL,
-    transect_id int4 NOT NULL,
+    transecta_id int4 NOT NULL,
     numero int2 NOT NULL,
     largo float8 NOT NULL,
     profundidad_inicial float8 NULL,
@@ -12,7 +12,7 @@ CREATE TABLE public.segmentos (
     est_minima float8 NOT NULL,
     coordenadas_inicio public.geography(point, 4326) NULL,
     coordenadas_fin public.geography(point, 4326) NULL,
-    CONSTRAINT segments_pk PRIMARY KEY (id),
+    CONSTRAINT segmentos_pk PRIMARY KEY (id),
     CONSTRAINT segmentos_fk_sustratos FOREIGN KEY (sustrato_id) REFERENCES public.sustratos(id),
-    CONSTRAINT segmentos_fk_transectas FOREIGN KEY (transect_id) REFERENCES public.transectas(id)
+    CONSTRAINT segmentos_fk_transectas FOREIGN KEY (transecta_id) REFERENCES public.transectas(id)
 );

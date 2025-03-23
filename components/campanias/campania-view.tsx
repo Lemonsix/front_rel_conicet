@@ -9,10 +9,8 @@ import { toast } from "sonner";
 import { parseWKTPoint } from "@/lib/utils/coordinates";
 import { getTransectasByCampaniaAction } from "@/lib/actions/transectas";
 import { TransectaModal } from "./transecta-modal";
-import {
-  getEmbarcacionesAction,
-  getBuzosAction,
-} from "@/lib/actions/campanias";
+import { getEmbarcacionesAction } from "@/lib/actions/embarcaciones";
+import { getPersonasByRolAction } from "@/lib/actions/personas";
 
 interface CampaniaViewProps {
   campania: Campania;
@@ -54,9 +52,17 @@ export function CampaniaView({
         setEmbarcaciones(embarcacionesData || []);
 
         // Obtener buzos
-        const { data: buzosData, error: buzosError } = await getBuzosAction();
+        const { data: buzosData, error: buzosError } =
+          await getPersonasByRolAction("BUZO");
         if (buzosError) throw new Error(buzosError);
-        setBuzos(buzosData || []);
+        setBuzos(
+          (buzosData || []).map((buzo) => ({
+            id: buzo.id,
+            nombre: buzo.nombre,
+            apellido: buzo.apellido,
+            rol: "BUZO",
+          }))
+        );
       } catch (error) {
         console.error("Error fetching data:", error);
         toast.error("Error al cargar los datos");

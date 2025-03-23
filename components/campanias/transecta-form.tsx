@@ -10,16 +10,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
 import {
-  createTransectaAction,
-  getNombresTransectasAction,
-} from "@/lib/actions/campanias";
-import { useState, useEffect, useRef } from "react";
-import { toast } from "sonner";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -27,20 +22,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  createTransectaAction,
+  getNombresTransectasAction,
+} from "@/lib/actions/transectas";
 import { cn } from "@/lib/utils";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandInput,
-  CommandItem,
-  CommandEmpty,
-  CommandGroup,
-} from "@/components/ui/command";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import * as z from "zod";
 
 const formSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido"),
@@ -48,7 +41,6 @@ const formSchema = z.object({
   fecha: z.string().min(1, "La fecha es requerida"),
   hora_inicio: z.string().min(1, "La hora de inicio es requerida"),
   hora_fin: z.string().min(1, "La hora de fin es requerida"),
-  profundidad_inicial: z.string().min(1, "La profundidad inicial es requerida"),
   orientacion: z.string().min(1, "La orientación es requerida"),
   embarcacion_id: z.string().optional(),
   buzo_id: z.string().optional(),
@@ -67,12 +59,14 @@ interface TransectaFormProps {
     apellido: string;
     rol: string;
   }>;
+  onSuccess?: () => void;
 }
 
 export function TransectaForm({
   campaniaId,
   embarcaciones,
   buzos,
+  onSuccess,
 }: TransectaFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [nombresTransectas, setNombresTransectas] = useState<string[]>([]);
@@ -101,7 +95,6 @@ export function TransectaForm({
       fecha: "",
       hora_inicio: "",
       hora_fin: "",
-      profundidad_inicial: "",
       orientacion: "",
       embarcacion_id: "",
       buzo_id: "",
@@ -111,9 +104,20 @@ export function TransectaForm({
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setIsLoading(true);
+      console.log("Valores del formulario:", values);
+
+      // Crear timestamps combinando fecha y hora
+      const hora_inicio = new Date(
+        `${values.fecha}T${values.hora_inicio}`
+      ).toISOString();
+      const hora_fin = new Date(
+        `${values.fecha}T${values.hora_fin}`
+      ).toISOString();
+
       const { error } = await createTransectaAction({
         ...values,
-        profundidad_inicial: parseFloat(values.profundidad_inicial),
+        hora_inicio,
+        hora_fin,
         embarcacion_id: values.embarcacion_id
           ? parseInt(values.embarcacion_id)
           : undefined,
@@ -122,12 +126,15 @@ export function TransectaForm({
       });
 
       if (error) {
+        console.error("Error al crear transecta:", error);
         throw new Error(error);
       }
 
       toast.success("La transecta se ha creado correctamente");
       form.reset();
+      onSuccess?.();
     } catch (error) {
+      console.error("Error completo:", error);
       toast.error(
         error instanceof Error ? error.message : "Ha ocurrido un error"
       );
@@ -266,27 +273,26 @@ export function TransectaForm({
 
           <FormField
             control={form.control}
-            name="profundidad_inicial"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Profundidad inicial (m)</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.1" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
             name="orientacion"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Orientación</FormLabel>
-                <FormControl>
-                  <Input placeholder="Ej: N-S" {...field} />
-                </FormControl>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona una orientación" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="N-S">N-S</SelectItem>
+                    <SelectItem value="S-N">S-N</SelectItem>
+                    <SelectItem value="E-O">E-O</SelectItem>
+                    <SelectItem value="O-E">O-E</SelectItem>
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}

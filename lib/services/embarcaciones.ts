@@ -1,5 +1,5 @@
 import { Embarcacion } from "@/lib/types/embarcacion";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/lib/utils/supabase/server";
 
 export async function createEmbarcacion(embarcacion: Omit<Embarcacion, "id">) {
   const supabase = await createClient();
