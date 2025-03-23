@@ -20,7 +20,7 @@ export function sexagesimalToDecimal(sexagesimal: string): number {
   const match = sexagesimal.match(/(-?)(\d+)°\s*(\d+)'\s*(\d+\.?\d*)"/);
   if (!match) throw new Error("Formato inválido. Use: DD° MM' SS.SS\"");
 
-  const [_, sign, degrees, minutes, seconds] = match;
+  const [, sign, degrees, minutes, seconds] = match;
   const decimal =
     parseInt(degrees) + parseInt(minutes) / 60 + parseFloat(seconds) / 3600;
 

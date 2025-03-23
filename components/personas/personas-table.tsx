@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -40,7 +40,7 @@ function PersonasTableContent() {
     };
 
     fetchPersonas();
-  }, []);
+  }, [supabase]);
 
   if (isLoading) {
     return <Loading text="Cargando personas..." />;

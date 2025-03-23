@@ -5,9 +5,6 @@ import { notFound } from "next/navigation";
 import { Campania } from "@/lib/types/campania";
 import { Waypoint } from "@/lib/types/segmento";
 
-// Habilitar ISR con revalidación cada 1 hora
-export const revalidate = 3600;
-
 interface MarisqueoDBData {
   id: number;
   segmento_id: number;
@@ -84,10 +81,10 @@ interface TransectaDBData {
 export default async function CampaniaPage({
   params,
 }: {
-  params: { campaniaId: string };
+  params: Promise<{ campaniaId: string }>;
 }) {
   const supabase = await createClient();
-
+  const { campaniaId } = await params;
   // Función para parsear coordenadas WKT
   const parseWKTPoint = (
     wkt: string,
@@ -136,7 +133,7 @@ export default async function CampaniaPage({
       )
     `
     )
-    .eq("id", params.campaniaId)
+    .eq("id", campaniaId)
     .single();
 
   if (campaniaError) {
@@ -215,7 +212,7 @@ export default async function CampaniaPage({
       )
     `
     )
-    .eq("campania_id", params.campaniaId);
+    .eq("campania_id", campaniaId);
 
   if (transectasError) {
     console.error("Error fetching transectas:", transectasError);

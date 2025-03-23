@@ -12,8 +12,12 @@ import {
 } from "react-leaflet";
 import { useTheme } from "next-themes";
 
+interface IconDefault extends L.Icon.Default {
+  _getIconUrl?: string;
+}
+
 // Corregir el problema de los íconos de Leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+delete (L.Icon.Default.prototype as IconDefault)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",

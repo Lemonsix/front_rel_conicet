@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -41,7 +41,7 @@ function EmbarcacionesTableContent() {
     };
 
     fetchEmbarcaciones();
-  }, []);
+  }, [supabase]);
 
   if (isLoading) {
     return <Loading text="Cargando embarcaciones..." />;

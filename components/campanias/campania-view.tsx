@@ -9,6 +9,79 @@ import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import { parseWKTPoint } from "@/lib/utils/coordinates";
 
+interface TransectaDBData {
+  id: number;
+  nombre: string;
+  observaciones?: string;
+  fecha: string;
+  hora_inicio: string;
+  hora_fin: string;
+  profundidad_inicial: number;
+  orientacion: string;
+  embarcacion_id?: number;
+  buzo_id?: number;
+  campania_id: number;
+  embarcacion?: Array<{
+    id: number;
+    nombre: string;
+    matricula: string;
+  }>;
+  buzo?: Array<{
+    id: number;
+    nombre: string;
+    apellido: string;
+    rol: string;
+  }>;
+  segmentos?: SegmentoDBData[];
+}
+
+interface SegmentoDBData {
+  id: number;
+  numero: number;
+  largo: number;
+  profundidad_inicial: number;
+  profundidad_final: number;
+  sustrato: Array<{
+    id: number;
+    codigo: string;
+    descripcion: string;
+  }>;
+  conteo: number;
+  est_minima: number;
+  coordenadas_inicio: string;
+  coordenadas_fin: string;
+  tiene_marisqueo: string;
+  tiene_cuadrados: string;
+  marisqueos?: MarisqueoDBData[];
+  cuadrados?: CuadradoDBData[];
+}
+
+interface MarisqueoDBData {
+  id: number;
+  segmento_id: number;
+  timestamp: string;
+  tiempo: number;
+  coordenadas: string;
+  tiene_muestreo: boolean;
+  buzo_id: number;
+  n_captura: number;
+  peso_muestra: number;
+}
+
+interface CuadradoDBData {
+  id: number;
+  segmento_id: number;
+  replica: number;
+  coordenadas_inicio: string;
+  coordenadas_fin: string;
+  profundidad_inicio: string;
+  profundidad_fin: string;
+  tiene_muestreo: boolean;
+  conteo: number;
+  tamanio: number;
+  timestamp: string;
+}
+
 interface CampaniaViewProps {
   campania: Campania;
   transectas: Transecta[];
@@ -120,65 +193,67 @@ export function CampaniaView({
       if (error) throw error;
 
       // Mapear los datos al formato correcto
-      const mappedTransectas: Transecta[] = transectasData.map((t: any) => ({
-        id: t.id,
-        nombre: t.nombre,
-        observaciones: t.observaciones,
-        fecha: t.fecha,
-        horaInicio: t.hora_inicio,
-        horaFin: t.hora_fin,
-        profundidadInicial: t.profundidad_inicial,
-        orientacion: t.orientacion,
-        embarcacionId: t.embarcacion_id,
-        buzoId: t.buzo_id,
-        campaniaId: t.campania_id,
-        embarcacion: t.embarcacion?.[0],
-        buzo: t.buzo?.[0],
-        segmentos:
-          t.segmentos?.map((s: any) => ({
-            id: s.id,
-            transectId: t.id,
-            numero: s.numero,
-            largo: s.largo,
-            profundidadInicial: s.profundidad_inicial,
-            profundidadFinal: s.profundidad_final,
-            sustrato: s.sustrato[0],
-            conteo: s.conteo,
-            estMinima: s.est_minima || 0,
-            tieneMarisqueo: s.tiene_marisqueo === "SI",
-            tieneCuadrados: s.tiene_cuadrados === "SI",
-            coordenadasInicio: s.coordenadas_inicio
-              ? parseWKTPoint(s.coordenadas_inicio, s.profundidad_inicial)
-              : undefined,
-            coordenadasFin: s.coordenadas_fin
-              ? parseWKTPoint(s.coordenadas_fin, s.profundidad_final)
-              : undefined,
-            marisqueos: s.marisqueos?.map((m: any) => ({
-              id: m.id,
-              segmentoId: m.segmento_id,
-              timestamp: m.timestamp,
-              tiempo: m.tiempo,
-              coordenadas: m.coordenadas,
-              tieneMuestreo: m.tiene_muestreo,
-              buzoId: m.buzo_id,
-              NroCaptura: m.n_captura,
-              PesoMuestra: m.peso_muestra,
-            })),
-            cuadrados: s.cuadrados?.map((c: any) => ({
-              id: c.id,
-              segmentoId: c.segmento_id,
-              replica: c.replica,
-              coordenadasInicio: c.coordenadas_inicio,
-              coordenadasFin: c.coordenadas_fin,
-              profundidadInicio: c.profundidad_inicio,
-              profundidadFin: c.profundidad_fin,
-              tieneMuestreo: c.tiene_muestreo,
-              conteo: c.conteo,
-              tamanio: c.tamanio,
-              timestamp: c.timestamp,
-            })),
-          })) || [],
-      }));
+      const mappedTransectas: Transecta[] = transectasData.map(
+        (t: TransectaDBData) => ({
+          id: t.id,
+          nombre: t.nombre,
+          observaciones: t.observaciones,
+          fecha: t.fecha,
+          horaInicio: t.hora_inicio,
+          horaFin: t.hora_fin,
+          profundidadInicial: t.profundidad_inicial,
+          orientacion: t.orientacion,
+          embarcacionId: t.embarcacion_id,
+          buzoId: t.buzo_id,
+          campaniaId: t.campania_id,
+          embarcacion: t.embarcacion?.[0],
+          buzo: t.buzo?.[0],
+          segmentos:
+            t.segmentos?.map((s: SegmentoDBData) => ({
+              id: s.id,
+              transectId: t.id,
+              numero: s.numero,
+              largo: s.largo,
+              profundidadInicial: s.profundidad_inicial,
+              profundidadFinal: s.profundidad_final,
+              sustrato: s.sustrato[0],
+              conteo: s.conteo,
+              estMinima: s.est_minima || 0,
+              tieneMarisqueo: s.tiene_marisqueo === "SI",
+              tieneCuadrados: s.tiene_cuadrados === "SI",
+              coordenadasInicio: s.coordenadas_inicio
+                ? parseWKTPoint(s.coordenadas_inicio, s.profundidad_inicial)
+                : undefined,
+              coordenadasFin: s.coordenadas_fin
+                ? parseWKTPoint(s.coordenadas_fin, s.profundidad_final)
+                : undefined,
+              marisqueos: s.marisqueos?.map((m: MarisqueoDBData) => ({
+                id: m.id,
+                segmentoId: m.segmento_id,
+                timestamp: m.timestamp,
+                tiempo: m.tiempo,
+                coordenadas: m.coordenadas,
+                tieneMuestreo: m.tiene_muestreo,
+                buzoId: m.buzo_id,
+                NroCaptura: m.n_captura,
+                PesoMuestra: m.peso_muestra,
+              })),
+              cuadrados: s.cuadrados?.map((c: CuadradoDBData) => ({
+                id: c.id,
+                segmentoId: c.segmento_id,
+                replica: c.replica,
+                coordenadasInicio: c.coordenadas_inicio,
+                coordenadasFin: c.coordenadas_fin,
+                profundidadInicio: c.profundidad_inicio,
+                profundidadFin: c.profundidad_fin,
+                tieneMuestreo: c.tiene_muestreo,
+                conteo: c.conteo,
+                tamanio: c.tamanio,
+                timestamp: c.timestamp,
+              })),
+            })) || [],
+        })
+      );
 
       // Actualizar el estado con los datos mapeados
       setTransectas(mappedTransectas);

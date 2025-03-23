@@ -16,6 +16,20 @@ import Link from "next/link";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loading } from "../ui/loading";
 
+interface CampaniaDBData {
+  id: number;
+  nombre: string;
+  responsable: Array<{
+    id: number;
+    nombre: string;
+    apellido: string;
+    rol: string;
+  }> | null;
+  cantidadTransectas: Array<{ count: number }>;
+  inicio: string;
+  fin: string;
+}
+
 export function CampaniasGrid() {
   const [campanias, setCampanias] = useState<Campania[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,7 +66,7 @@ export function CampaniasGrid() {
           fin
         `
         )
-        .order("nombre", { ascending: false });
+        .order("id", { ascending: false });
 
       if (error) {
         console.error("Error fetching campanias:", error);
@@ -62,7 +76,7 @@ export function CampaniasGrid() {
       }
 
       const campaniasProcesadas: Campania[] =
-        data?.map((item: any) => {
+        data?.map((item: CampaniaDBData) => {
           if (
             !item.responsable ||
             (Array.isArray(item.responsable) && item.responsable.length === 0)

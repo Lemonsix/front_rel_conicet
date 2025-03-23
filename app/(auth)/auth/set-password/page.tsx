@@ -2,8 +2,9 @@
 
 import { useSearchParams } from "next/navigation";
 import { SetPasswordForm } from "./set-password-form";
+import { Suspense } from "react";
 
-export default function SetPasswordPage() {
+function SetPasswordContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
@@ -26,5 +27,21 @@ export default function SetPasswordPage() {
         <SetPasswordForm token={token} />
       </div>
     </div>
+  );
+}
+
+export default function SetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container relative h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-1 lg:px-0">
+          <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+            <div className="text-center">Cargando...</div>
+          </div>
+        </div>
+      }
+    >
+      <SetPasswordContent />
+    </Suspense>
   );
 }

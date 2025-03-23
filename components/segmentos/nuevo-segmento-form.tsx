@@ -90,7 +90,7 @@ export function NuevoSegmentoForm({
     };
 
     fetchSustratos();
-  }, []);
+  }, [supabase]);
 
   const onSubmit = async (values: FormValues) => {
     try {

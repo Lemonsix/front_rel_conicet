@@ -39,6 +39,7 @@ const formSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido"),
   responsableId: z.string().min(1, "El responsable es requerido"),
   observaciones: z.string().optional(),
+  fechaInicio: z.string().min(1, "La fecha de inicio es requerida"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -58,12 +59,13 @@ export function CampaniaForm({ onCampaniaCreada }: CampaniaFormProps) {
       nombre: "",
       responsableId: "",
       observaciones: "",
+      fechaInicio: "",
     },
   });
 
   useEffect(() => {
     const fetchInvestigadores = async () => {
-      const { data, error } = await supabase
+      const { data: investigadoresData, error } = await supabase
         .from("personas")
         .select("*")
         .eq("rol", "INVESTIGADOR");
@@ -74,21 +76,22 @@ export function CampaniaForm({ onCampaniaCreada }: CampaniaFormProps) {
         return;
       }
 
-      setInvestigadores(data || []);
+      setInvestigadores(investigadoresData || []);
     };
 
     fetchInvestigadores();
-  }, []);
+  }, [supabase]);
 
   const onSubmit = async (values: FormValues) => {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("campanias")
         .insert([
           {
             nombre: values.nombre,
-            fk_responsable_personas: values.responsableId,
+            responsable_id: values.responsableId,
             observaciones: values.observaciones,
+            inicio: values.fechaInicio,
           },
         ])
         .select()
@@ -131,34 +134,48 @@ export function CampaniaForm({ onCampaniaCreada }: CampaniaFormProps) {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="responsableId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Responsable</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="responsableId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Responsable</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Seleccionar responsable" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {investigadores.map((investigador) => (
+                          <SelectItem
+                            key={investigador.id}
+                            value={investigador.id.toString()}
+                          >
+                            {investigador.nombre} {investigador.apellido}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="fechaInicio"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fecha de Inicio</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar responsable" />
-                      </SelectTrigger>
+                      <Input type="date" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      {investigadores.map((investigador) => (
-                        <SelectItem
-                          key={investigador.id}
-                          value={investigador.id.toString()}
-                        >
-                          {investigador.nombre} {investigador.apellido}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="observaciones"
