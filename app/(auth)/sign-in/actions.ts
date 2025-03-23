@@ -18,3 +18,19 @@ export async function signIn(formData: { email: string; password: string }) {
   revalidatePath("/", "layout");
   return { success: true };
 }
+
+export async function signInWithGoogle() {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+    },
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { success: true };
+}

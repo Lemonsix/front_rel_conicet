@@ -1,9 +1,9 @@
 import { CampaniaView } from "@/components/campanias/campania-view";
 import { Transecta } from "@/lib/types/transecta";
-import { createClient } from "@/utils/supabase/server";
 import { notFound } from "next/navigation";
 import { Campania } from "@/lib/types/campania";
 import { Waypoint } from "@/lib/types/segmento";
+import { getCampaniaByIdAction } from "@/lib/actions/campanias";
 
 interface MarisqueoDBData {
   id: number;
@@ -78,151 +78,73 @@ interface TransectaDBData {
   segmentos?: SegmentoDBData[];
 }
 
+interface CampaniaDBData {
+  id: number;
+  nombre: string;
+  observaciones?: string;
+  inicio: string;
+  fin: string;
+  cantidadTransectas: Array<{ count: number }>;
+  responsable: Array<{
+    id: number;
+    nombre: string;
+    apellido: string;
+    rol: string;
+  }>;
+}
+
+interface CampaniaResponse {
+  data: {
+    campania: CampaniaDBData;
+    transectas: TransectaDBData[];
+  };
+  error?: string;
+}
+
+// Función para parsear coordenadas WKT
+const parseWKTPoint = (
+  wkt: string,
+  profundidad: number
+): Waypoint | undefined => {
+  try {
+    // Extraer la parte hexadecimal después del SRID
+    const hexPart = wkt.substring(18); // Saltamos '0101000020E6100000'
+
+    // Dividir en dos partes de 16 caracteres (8 bytes cada una)
+    const lonHex = hexPart.substring(0, 16);
+    const latHex = hexPart.substring(16, 32);
+
+    // Convertir de hex a buffer y luego a float64
+    const buf1 = Buffer.from(lonHex, "hex");
+    const buf2 = Buffer.from(latHex, "hex");
+
+    // Leer como double little-endian
+    const lon = buf1.readDoubleLE(0);
+    const lat = buf2.readDoubleLE(0);
+
+    return { latitud: lat, longitud: lon, profundidad };
+  } catch (error) {
+    console.error("Error parsing WKT:", error, "for input:", wkt);
+    return undefined;
+  }
+};
+
 export default async function CampaniaPage({
   params,
 }: {
   params: Promise<{ campaniaId: string }>;
 }) {
-  const supabase = await createClient();
   const { campaniaId } = await params;
-  // Función para parsear coordenadas WKT
-  const parseWKTPoint = (
-    wkt: string,
-    profundidad: number
-  ): Waypoint | undefined => {
-    try {
-      // Extraer la parte hexadecimal después del SRID
-      const hexPart = wkt.substring(18); // Saltamos '0101000020E6100000'
+  const { data, error } = (await getCampaniaByIdAction(
+    campaniaId
+  )) as CampaniaResponse;
 
-      // Dividir en dos partes de 16 caracteres (8 bytes cada una)
-      const lonHex = hexPart.substring(0, 16);
-      const latHex = hexPart.substring(16, 32);
-
-      // Convertir de hex a buffer y luego a float64
-      const buf1 = Buffer.from(lonHex, "hex");
-      const buf2 = Buffer.from(latHex, "hex");
-
-      // Leer como double little-endian
-      const lon = buf1.readDoubleLE(0);
-      const lat = buf2.readDoubleLE(0);
-
-      console.log("Parsed coordinates:", { lat, lon, profundidad });
-      return { latitud: lat, longitud: lon, profundidad };
-    } catch (error) {
-      console.error("Error parsing WKT:", error, "for input:", wkt);
-      return undefined;
-    }
-  };
-
-  // Obtener datos de la campaña
-  const { data: campaniaData, error: campaniaError } = await supabase
-    .from("campanias")
-    .select(
-      `
-      id,
-      nombre,
-      observaciones,
-      inicio,
-      fin,
-      cantidadTransectas: transectas(count),
-      responsable:personas!campanias_fk_responsable_personas(
-        id,
-        nombre,
-        apellido,
-        rol
-      )
-    `
-    )
-    .eq("id", campaniaId)
-    .single();
-
-  if (campaniaError) {
-    console.error("Error fetching campaña:", campaniaError);
+  if (error) {
+    console.error("Error fetching campaña:", error);
     notFound();
   }
 
-  // Obtener transectas de la campaña
-  const { data: transectasData, error: transectasError } = await supabase
-    .from("transectas")
-    .select(
-      `
-      id,
-      nombre,
-      observaciones,
-      fecha,
-      hora_inicio,
-      hora_fin,
-      profundidad_inicial,
-      orientacion,
-      embarcacion_id,
-      buzo_id,
-      campania_id,
-      embarcacion:embarcaciones!transectas_fk_embarcaciones(
-        id,
-        nombre,
-        matricula
-      ),
-      buzo:personas!transectas_fk_buzo_personas(
-        id,
-        nombre,
-        apellido,
-        rol
-      ),
-      segmentos!inner(
-        id,
-        numero,
-        largo,
-        profundidad_inicial,
-        profundidad_final,
-        sustrato:sustratos!segmentos_fk_sustratos(
-          id,
-          codigo,
-          descripcion
-        ),
-        conteo,
-        est_minima,
-        coordenadas_inicio,
-        coordenadas_fin,
-        tiene_marisqueo,
-        tiene_cuadrados,
-        marisqueos!marisqueos_fk_segmentos(
-          id,
-          segmento_id,
-          timestamp,
-          tiempo,
-          coordenadas,
-          tiene_muestreo,
-          buzo_id,
-          n_captura,
-          peso_muestra
-        ),
-        cuadrados(
-          id,
-          segmento_id,
-          replica,
-          coordenadas_inicio,
-          coordenadas_fin,
-          profundidad_inicio,
-          profundidad_fin,
-          tiene_muestreo,
-          conteo,
-          tamanio,
-          timestamp
-        )
-      )
-    `
-    )
-    .eq("campania_id", campaniaId);
-
-  if (transectasError) {
-    console.error("Error fetching transectas:", transectasError);
-    notFound();
-  }
-
-  console.log(
-    "Datos del primer segmento de la primera transecta:",
-    JSON.stringify(transectasData?.[0]?.segmentos?.[0], null, 2)
-  );
+  const { campania: campaniaData, transectas: transectasData } = data;
 
   // Mapear los datos a los tipos correctos
   const campania: Campania = {
@@ -256,51 +178,49 @@ export default async function CampaniaPage({
       embarcacion: t.embarcacion?.[0],
       buzo: t.buzo?.[0],
       segmentos:
-        t.segmentos?.map((s) => {
-          return {
-            id: s.id,
-            transectId: t.id,
-            numero: s.numero,
-            largo: s.largo,
-            profundidadInicial: s.profundidad_inicial,
-            profundidadFinal: s.profundidad_final,
-            sustrato: s.sustrato[0],
-            conteo: s.conteo,
-            estMinima: s.est_minima || 0,
-            tieneMarisqueo: s.tiene_marisqueo === "SI",
-            tieneCuadrados: s.tiene_cuadrados === "SI",
-            coordenadasInicio: s.coordenadas_inicio
-              ? parseWKTPoint(s.coordenadas_inicio, s.profundidad_inicial)
-              : undefined,
-            coordenadasFin: s.coordenadas_fin
-              ? parseWKTPoint(s.coordenadas_fin, s.profundidad_final)
-              : undefined,
-            marisqueos: s.marisqueos.map((m) => ({
-              id: m.id,
-              segmentoId: m.segmento_id,
-              timestamp: m.timestamp,
-              tiempo: m.tiempo,
-              coordenadas: m.coordenadas,
-              tieneMuestreo: m.tiene_muestreo,
-              buzoId: m.buzo_id,
-              NroCaptura: m.n_captura,
-              PesoMuestra: m.peso_muestra,
-            })),
-            cuadrados: s.cuadrados.map((c) => ({
-              id: c.id,
-              segmentoId: c.segmento_id,
-              replica: c.replica,
-              coordenadasInicio: c.coordenadas_inicio,
-              coordenadasFin: c.coordenadas_fin,
-              profundidadInicio: c.profundidad_inicio,
-              profundidadFin: c.profundidad_fin,
-              tieneMuestreo: c.tiene_muestreo,
-              conteo: c.conteo,
-              tamanio: c.tamanio,
-              timestamp: c.timestamp,
-            })),
-          };
-        }) || [],
+        t.segmentos?.map((s: SegmentoDBData) => ({
+          id: s.id,
+          transectId: t.id,
+          numero: s.numero,
+          largo: s.largo,
+          profundidadInicial: s.profundidad_inicial,
+          profundidadFinal: s.profundidad_final,
+          sustrato: s.sustrato[0],
+          conteo: s.conteo,
+          estMinima: s.est_minima || 0,
+          tieneMarisqueo: s.tiene_marisqueo === "SI",
+          tieneCuadrados: s.tiene_cuadrados === "SI",
+          coordenadasInicio: s.coordenadas_inicio
+            ? parseWKTPoint(s.coordenadas_inicio, s.profundidad_inicial)
+            : undefined,
+          coordenadasFin: s.coordenadas_fin
+            ? parseWKTPoint(s.coordenadas_fin, s.profundidad_final)
+            : undefined,
+          marisqueos: s.marisqueos.map((m: MarisqueoDBData) => ({
+            id: m.id,
+            segmentoId: m.segmento_id,
+            timestamp: m.timestamp,
+            tiempo: m.tiempo,
+            coordenadas: m.coordenadas,
+            tieneMuestreo: m.tiene_muestreo,
+            buzoId: m.buzo_id,
+            NroCaptura: m.n_captura,
+            PesoMuestra: m.peso_muestra,
+          })),
+          cuadrados: s.cuadrados.map((c: CuadradoDBData) => ({
+            id: c.id,
+            segmentoId: c.segmento_id,
+            replica: c.replica,
+            coordenadasInicio: c.coordenadas_inicio,
+            coordenadasFin: c.coordenadas_fin,
+            profundidadInicio: c.profundidad_inicio,
+            profundidadFin: c.profundidad_fin,
+            tieneMuestreo: c.tiene_muestreo,
+            conteo: c.conteo,
+            tamanio: c.tamanio,
+            timestamp: c.timestamp,
+          })),
+        })) || [],
     })
   );
 

@@ -13,8 +13,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
-import { signIn } from "./actions";
+import { createClient } from "@/utils/supabase/server";
+import { signIn, signInWithGoogle } from "./actions";
 
 export function LoginForm({
   className,
@@ -63,15 +63,10 @@ export function LoginForm({
     setError(null);
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error) throw error;
+      const result = await signInWithGoogle();
+      if (result.error) {
+        setError(result.error);
+      }
     } catch (err) {
       setError(
         err instanceof Error

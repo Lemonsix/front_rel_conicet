@@ -1,0 +1,7 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+#Reglas de Shadcn
+- No se pueden editar los componentes de Shadcn bajo ninguna circunstancia

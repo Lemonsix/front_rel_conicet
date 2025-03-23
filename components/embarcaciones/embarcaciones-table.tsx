@@ -47,8 +47,7 @@ function EmbarcacionesTableContent() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Embarcaciones</h2>
+      <div className="flex justify-end">
         <EmbarcacionForm onSuccess={fetchEmbarcaciones} />
       </div>
       <ScrollArea className="h-[calc(100vh-12rem)] rounded-md border">

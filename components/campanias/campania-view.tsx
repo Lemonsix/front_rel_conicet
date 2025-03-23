@@ -4,10 +4,15 @@ import { TransectasAccordion } from "@/components/transectas/transectas-accordio
 import { TransectaMap } from "@/components/map/transecta-map";
 import { Campania } from "@/lib/types/campania";
 import { Transecta } from "@/lib/types/transecta";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { parseWKTPoint } from "@/lib/utils/coordinates";
 import { getTransectasByCampaniaAction } from "@/lib/actions/transectas";
+import { TransectaModal } from "./transecta-modal";
+import {
+  getEmbarcacionesAction,
+  getBuzosAction,
+} from "@/lib/actions/campanias";
 
 interface CampaniaViewProps {
   campania: Campania;
@@ -22,6 +27,46 @@ export function CampaniaView({
     new Set()
   );
   const [transectas, setTransectas] = useState<Transecta[]>(initialTransectas);
+  const [embarcaciones, setEmbarcaciones] = useState<
+    Array<{
+      id: number;
+      nombre: string;
+      matricula: string;
+    }>
+  >([]);
+  const [buzos, setBuzos] = useState<
+    Array<{
+      id: number;
+      nombre: string;
+      apellido: string;
+      rol: string;
+    }>
+  >([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        // Obtener embarcaciones
+        const { data: embarcacionesData, error: embarcacionesError } =
+          await getEmbarcacionesAction();
+        if (embarcacionesError) throw new Error(embarcacionesError);
+        setEmbarcaciones(embarcacionesData || []);
+
+        // Obtener buzos
+        const { data: buzosData, error: buzosError } = await getBuzosAction();
+        if (buzosError) throw new Error(buzosError);
+        setBuzos(buzosData || []);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast.error("Error al cargar los datos");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
 
   // Obtener todos los segmentos de las transectas abiertas
   const segmentosVisibles = transectas
@@ -126,8 +171,19 @@ export function CampaniaView({
     <div className="grid grid-cols-2 gap-4 w-full h-[calc(100vh-4rem)] overflow-hidden">
       <div className="w-full p-6 overflow-hidden">
         <div className="flex flex-col h-full overflow-hidden">
-          <h1 className="text-3xl font-bold mb-6">{campania.nombre}</h1>
-          <p className="text-muted-foreground mb-6">{campania.observaciones}</p>
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-3xl font-bold">{campania.nombre}</h1>
+              <p className="text-muted-foreground">{campania.observaciones}</p>
+            </div>
+            {!isLoading && (
+              <TransectaModal
+                campaniaId={campania.id}
+                embarcaciones={embarcaciones}
+                buzos={buzos}
+              />
+            )}
+          </div>
           <div className="flex-1 overflow-y-auto min-h-0">
             <TransectasAccordion
               transectas={transectas}
