@@ -11,43 +11,41 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Persona } from "@/lib/types/persona";
-import { createClient } from "@/utils/supabase/client";
+import { createPersonaAction } from "@/lib/actions/personas";
 import { toast } from "sonner";
 
 interface PersonaFormProps {
-  onSubmit: (persona: Persona) => void;
+  onSuccess?: () => void;
 }
 
-export function PersonaForm({ onSubmit }: PersonaFormProps) {
+export function PersonaForm({ onSuccess }: PersonaFormProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
   const [rol, setRol] = useState("");
-  const supabase = createClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { data, error } = await supabase
-        .from("personas")
-        .insert([{ nombre, apellido, rol }])
-        .select()
-        .single();
+      const result = await createPersonaAction({ nombre, apellido, rol });
 
-      if (error) throw error;
+      if (result.error) {
+        throw new Error(result.error);
+      }
 
-      onSubmit(data);
       toast.success("Persona agregada exitosamente");
       setNombre("");
       setApellido("");
       setRol("");
       setOpen(false);
+      onSuccess?.();
     } catch (error) {
-      toast.error("Error al agregar persona");
+      toast.error(
+        error instanceof Error ? error.message : "Error al agregar persona"
+      );
       console.error("Error:", error);
     } finally {
       setLoading(false);
@@ -92,7 +90,7 @@ export function PersonaForm({ onSubmit }: PersonaFormProps) {
             />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            Guardar
+            {loading ? "Guardando..." : "Guardar"}
           </Button>
         </form>
       </DialogContent>

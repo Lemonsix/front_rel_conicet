@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/utils/supabase/client";
 import { Campania } from "@/lib/types/campania";
 import { toast } from "sonner";
 import { CampaniaForm } from "./campania-form";
@@ -15,20 +14,7 @@ import {
 import Link from "next/link";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loading } from "../ui/loading";
-
-interface CampaniaDBData {
-  id: number;
-  nombre: string;
-  responsable: Array<{
-    id: number;
-    nombre: string;
-    apellido: string;
-    rol: string;
-  }> | null;
-  cantidadTransectas: Array<{ count: number }>;
-  inicio: string;
-  fin: string;
-}
+import { getCampaniasAction } from "@/lib/actions/campanias";
 
 export function CampaniasGrid() {
   const [campanias, setCampanias] = useState<Campania[]>([]);
@@ -37,96 +23,34 @@ export function CampaniasGrid() {
 
   const fetchCampanias = async () => {
     try {
-      const supabase = createClient();
+      const result = await getCampaniasAction();
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        setError("Debes iniciar sesión para ver las campañas");
-        setIsLoading(false);
-        return;
+      if (result.error) {
+        throw new Error(result.error);
       }
 
-      const { data, error } = await supabase
-        .from("campanias")
-        .select(
-          `
-          id,
-          nombre,
-          responsable:personas (
-            id,
-            nombre,
-            apellido,
-            rol
-          ),
-          cantidadTransectas: transectas ( count ),
-          inicio,
-          fin
-        `
-        )
-        .order("id", { ascending: false });
+      const campaniasProcesadas = result.data?.map((item) => ({
+        id: item.id,
+        nombre: item.nombre,
+        responsable: item.responsable || {
+          id: 0,
+          nombre: "Sin responsable",
+          apellido: "",
+          rol: "",
+        },
+        inicio: item.inicio,
+        fin: item.fin,
+        cantidadTransectas: item.cantidadTransectas?.[0]?.count || 0,
+      }));
 
-      if (error) {
-        console.error("Error fetching campanias:", error);
-        setError(error.message);
-        toast.error("Error al cargar las campañas");
-        return;
-      }
-
-      const campaniasProcesadas: Campania[] =
-        data?.map((item: CampaniaDBData) => {
-          if (
-            !item.responsable ||
-            (Array.isArray(item.responsable) && item.responsable.length === 0)
-          ) {
-            console.warn(`Campaña ${item.id} no tiene responsable asignado`);
-            return {
-              id: item.id,
-              nombre: item.nombre,
-              responsable: {
-                id: 0,
-                nombre: "Sin responsable",
-                apellido: "",
-                rol: "",
-              },
-              inicio: item.inicio,
-              fin: item.fin,
-              cantidadTransectas:
-                Array.isArray(item.cantidadTransectas) &&
-                item.cantidadTransectas.length > 0
-                  ? item.cantidadTransectas[0].count
-                  : 0,
-            };
-          }
-
-          const responsableData = Array.isArray(item.responsable)
-            ? item.responsable[0]
-            : item.responsable;
-
-          return {
-            id: item.id,
-            nombre: item.nombre,
-            responsable: responsableData,
-            inicio: item.inicio,
-            fin: item.fin,
-            cantidadTransectas:
-              Array.isArray(item.cantidadTransectas) &&
-              item.cantidadTransectas.length > 0
-                ? item.cantidadTransectas[0].count
-                : 0,
-          };
-        }) || [];
-
-      setCampanias(campaniasProcesadas);
-      setIsLoading(false);
+      setCampanias(campaniasProcesadas || []);
     } catch (error) {
-      console.error("Error fetching campanias:", error);
+      console.error("Error:", error);
       setError(
         error instanceof Error ? error.message : "Error al cargar las campañas"
       );
       toast.error("Error al cargar las campañas");
+    } finally {
       setIsLoading(false);
     }
   };
@@ -146,7 +70,7 @@ export function CampaniasGrid() {
   return (
     <div className="flex flex-col min-h-0 w-full pb-20">
       <div className="flex justify-end p-4">
-        <CampaniaForm onCampaniaCreada={fetchCampanias} />
+        <CampaniaForm onSuccess={fetchCampanias} />
       </div>
       <ScrollArea className="h-full w-full">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">

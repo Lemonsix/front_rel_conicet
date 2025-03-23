@@ -9,10 +9,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
 import { EmbarcacionForm } from "./embarcacion-form";
 import { Embarcacion } from "@/lib/types/embarcacion";
-import { createClient } from "@/utils/supabase/client";
+import { getEmbarcacionesAction } from "@/lib/actions/embarcaciones";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loading } from "@/components/ui/loading";
@@ -20,72 +19,62 @@ import { Loading } from "@/components/ui/loading";
 function EmbarcacionesTableContent() {
   const [embarcaciones, setEmbarcaciones] = useState<Embarcacion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
+
+  const fetchEmbarcaciones = async () => {
+    try {
+      const result = await getEmbarcacionesAction();
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      setEmbarcaciones(result.data || []);
+    } catch (error) {
+      toast.error("Error al cargar embarcaciones");
+      console.error("Error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchEmbarcaciones = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("embarcaciones")
-          .select("*")
-          .order("id", { ascending: true });
-
-        if (error) throw error;
-        setEmbarcaciones(data || []);
-      } catch (error) {
-        toast.error("Error al cargar embarcaciones");
-        console.error("Error:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchEmbarcaciones();
-  }, [supabase]);
+  }, []);
 
   if (isLoading) {
     return <Loading text="Cargando embarcaciones..." />;
   }
 
-  const handleAddEmbarcacion = (nuevaEmbarcacion: Omit<Embarcacion, "id">) => {
-    setEmbarcaciones([...embarcaciones, nuevaEmbarcacion as Embarcacion]);
-  };
-
   return (
-    <div className="flex flex-col min-h-0 w-full pb-20">
-      <div className="flex justify-end p-4">
-        <EmbarcacionForm onSubmit={handleAddEmbarcacion} />
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Embarcaciones</h2>
+        <EmbarcacionForm onSuccess={fetchEmbarcaciones} />
       </div>
-      <ScrollArea className="h-full w-full">
-        <div className="p-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Matricula</TableHead>
+      <ScrollArea className="h-[calc(100vh-12rem)] rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Nombre</TableHead>
+              <TableHead>Matrícula</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {embarcaciones.map((embarcacion) => (
+              <TableRow key={embarcacion.id}>
+                <TableCell>{embarcacion.id}</TableCell>
+                <TableCell>{embarcacion.nombre}</TableCell>
+                <TableCell>{embarcacion.matricula}</TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {embarcaciones.map((embarcacion) => (
-                <TableRow key={embarcacion.id}>
-                  <TableCell>{embarcacion.id}</TableCell>
-                  <TableCell>{embarcacion.nombre}</TableCell>
-                  <TableCell>{embarcacion.matricula}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+            ))}
+          </TableBody>
+        </Table>
       </ScrollArea>
     </div>
   );
 }
 
 export function EmbarcacionesTable() {
-  return (
-    <div className="flex flex-col min-h-0 w-full">
-      <EmbarcacionesTableContent />
-    </div>
-  );
+  return <EmbarcacionesTableContent />;
 }

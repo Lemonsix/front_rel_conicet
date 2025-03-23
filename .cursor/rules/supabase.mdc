@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Reglas de Supabase
+- No se pueden modificar los archivos de /utils/supabase
+- Las consultas no se pueden hacer con *, se debe mappear manualmente cada campo de la db con cada campo del objeto.

@@ -11,91 +11,71 @@ import {
 } from "@/components/ui/table";
 import { PersonaForm } from "./persona-form";
 import { Persona } from "@/lib/types/persona";
-import { createClient } from "@/utils/supabase/client";
+import { getPersonasAction } from "@/lib/actions/personas";
 import { ScrollArea } from "../ui/scroll-area";
 import { Loading } from "../ui/loading";
+import { toast } from "sonner";
 
 function PersonasTableContent() {
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
+
+  const fetchPersonas = async () => {
+    try {
+      const result = await getPersonasAction();
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      setPersonas(result.data || []);
+    } catch (error) {
+      toast.error("Error al cargar personas");
+      console.error("Error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchPersonas = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("personas")
-          .select("*")
-          .order("id", { ascending: true });
-
-        if (error) {
-          console.error("Error cargando personas:", error);
-          return;
-        }
-
-        setPersonas(data || []);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchPersonas();
-  }, [supabase]);
+  }, []);
 
   if (isLoading) {
     return <Loading text="Cargando personas..." />;
   }
 
-  const handleAddPersona = async (nuevaPersona: Omit<Persona, "id">) => {
-    const { data, error } = await supabase
-      .from("personas")
-      .insert([nuevaPersona])
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error agregando persona:", error);
-      return;
-    }
-
-    setPersonas([...personas, data]);
-  };
-
   return (
-    <div className="flex flex-col min-h-0 w-full pb-20">
-      <div className="flex justify-end p-4">
-        <PersonaForm onSubmit={handleAddPersona} />
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <PersonaForm onSuccess={fetchPersonas} />
       </div>
-      <ScrollArea className="h-full w-full">
-        <div className="p-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Nombre</TableHead>
-                <TableHead>CUIT</TableHead>
+      <ScrollArea className="h-[calc(100vh-12rem)] rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Nombre</TableHead>
+              <TableHead>Apellido</TableHead>
+              <TableHead>Rol</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {personas.map((persona) => (
+              <TableRow key={persona.id}>
+                <TableCell>{persona.id}</TableCell>
+                <TableCell>{persona.nombre}</TableCell>
+                <TableCell>{persona.apellido}</TableCell>
+                <TableCell>{persona.rol}</TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {personas.map((persona) => (
-                <TableRow key={persona.id}>
-                  <TableCell>{persona.id}</TableCell>
-                  <TableCell>{persona.nombre}</TableCell>
-                  <TableCell>{persona.apellido}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+            ))}
+          </TableBody>
+        </Table>
       </ScrollArea>
     </div>
   );
 }
 
 export function PersonasTable() {
-  return (
-    <div className="flex flex-col min-h-0 w-full">
-      <PersonasTableContent />
-    </div>
-  );
+  return <PersonasTableContent />;
 }

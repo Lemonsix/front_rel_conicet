@@ -19,11 +19,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import { Persona } from "@/lib/types/persona";
 import {
@@ -33,8 +31,9 @@ import {
   SelectItem,
   SelectValue,
 } from "../ui/select";
+import { createCampaniaAction } from "@/lib/actions/campanias";
+import { getPersonasAction } from "@/lib/actions/personas";
 
-// Definir el esquema de validación
 const formSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido"),
   responsableId: z.string().min(1, "El responsable es requerido"),
@@ -45,13 +44,13 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 interface CampaniaFormProps {
-  onCampaniaCreada: () => void;
+  onSuccess?: () => void;
 }
 
-export function CampaniaForm({ onCampaniaCreada }: CampaniaFormProps) {
+export function CampaniaForm({ onSuccess }: CampaniaFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [investigadores, setInvestigadores] = useState<Persona[]>([]);
-  const supabase = createClient();
+  const [loading, setLoading] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -65,47 +64,46 @@ export function CampaniaForm({ onCampaniaCreada }: CampaniaFormProps) {
 
   useEffect(() => {
     const fetchInvestigadores = async () => {
-      const { data: investigadoresData, error } = await supabase
-        .from("personas")
-        .select("*")
-        .eq("rol", "INVESTIGADOR");
+      const result = await getPersonasAction();
 
-      if (error) {
-        console.error("Error cargando investigadores:", error);
+      if (result.error) {
         toast.error("Error al cargar investigadores");
         return;
       }
 
-      setInvestigadores(investigadoresData || []);
+      setInvestigadores(
+        result.data?.filter((p) => p.rol === "INVESTIGADOR") || []
+      );
     };
 
     fetchInvestigadores();
-  }, [supabase]);
+  }, []);
 
   const onSubmit = async (values: FormValues) => {
+    setLoading(true);
     try {
-      const { error } = await supabase
-        .from("campanias")
-        .insert([
-          {
-            nombre: values.nombre,
-            responsable_id: values.responsableId,
-            observaciones: values.observaciones,
-            inicio: values.fechaInicio,
-          },
-        ])
-        .select()
-        .single();
+      const result = await createCampaniaAction({
+        nombre: values.nombre,
+        responsable_id: values.responsableId,
+        observaciones: values.observaciones,
+        inicio: values.fechaInicio,
+      });
 
-      if (error) throw error;
+      if (result.error) {
+        throw new Error(result.error);
+      }
 
       toast.success("Campaña creada exitosamente");
       form.reset();
       setIsOpen(false);
-      onCampaniaCreada();
+      onSuccess?.();
     } catch (error) {
-      console.error("Error creando campaña:", error);
-      toast.error("Error al crear la campaña");
+      toast.error(
+        error instanceof Error ? error.message : "Error al crear la campaña"
+      );
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -116,7 +114,7 @@ export function CampaniaForm({ onCampaniaCreada }: CampaniaFormProps) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Nueva Campaña</DialogTitle>
+          <DialogTitle>Crear Nueva Campaña</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -133,49 +131,49 @@ export function CampaniaForm({ onCampaniaCreada }: CampaniaFormProps) {
                 </FormItem>
               )}
             />
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="responsableId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Responsable</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Seleccionar responsable" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {investigadores.map((investigador) => (
-                          <SelectItem
-                            key={investigador.id}
-                            value={investigador.id.toString()}
-                          >
-                            {investigador.nombre} {investigador.apellido}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="fechaInicio"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fecha de Inicio</FormLabel>
+            <FormField
+              control={form.control}
+              name="responsableId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Responsable</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar responsable" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                    <SelectContent>
+                      {investigadores.map((investigador) => (
+                        <SelectItem
+                          key={investigador.id}
+                          value={investigador.id.toString()}
+                        >
+                          {`${investigador.nombre} ${investigador.apellido}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="fechaInicio"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fecha de Inicio</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="observaciones"
@@ -189,17 +187,9 @@ export function CampaniaForm({ onCampaniaCreada }: CampaniaFormProps) {
                 </FormItem>
               )}
             />
-
-            <div className="flex justify-end space-x-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit">Guardar</Button>
-            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Guardando..." : "Guardar"}
+            </Button>
           </form>
         </Form>
       </DialogContent>

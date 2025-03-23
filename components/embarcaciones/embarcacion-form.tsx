@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,23 +10,43 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Embarcacion } from "@/lib/types/embarcacion";
+import { createEmbarcacionAction } from "@/lib/actions/embarcaciones";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface EmbarcacionFormProps {
-  onSubmit: (embarcacion: Omit<Embarcacion, "id">) => void;
+  onSuccess?: () => void;
 }
 
-export function EmbarcacionForm({ onSubmit }: EmbarcacionFormProps) {
+export function EmbarcacionForm({ onSuccess }: EmbarcacionFormProps) {
   const [open, setOpen] = useState(false);
   const [nombre, setNombre] = useState("");
   const [matricula, setMatricula] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ nombre, matricula });
-    setNombre("");
-    setMatricula("");
-    setOpen(false);
+    setLoading(true);
+    try {
+      const result = await createEmbarcacionAction({ nombre, matricula });
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      toast.success("Embarcación creada exitosamente");
+      setNombre("");
+      setMatricula("");
+      setOpen(false);
+      onSuccess?.();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Error al crear la embarcación"
+      );
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -50,19 +69,17 @@ export function EmbarcacionForm({ onSubmit }: EmbarcacionFormProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="matricula">Matricula</Label>
+            <Label htmlFor="matricula">Matrícula</Label>
             <Input
               id="matricula"
               value={matricula}
               onChange={(e) => setMatricula(e.target.value)}
-              pattern="PBA-[0-9]{4}"
-              title="La matricula debe tener el formato PBA-XXXX"
               placeholder="PBA-1234"
               required
             />
           </div>
-          <Button type="submit" className="w-full">
-            Guardar
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Guardando..." : "Guardar"}
           </Button>
         </form>
       </DialogContent>

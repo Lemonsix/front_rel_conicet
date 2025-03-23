@@ -67,7 +67,7 @@ export function TransectasAccordion({
                 </p>
                 <NuevoSegmentoForm
                   transectaId={transecta.id}
-                  onSegmentoCreado={onSegmentoCreado || (() => {})}
+                  onSuccess={onSegmentoCreado}
                 />
               </div>
               <div className="space-y-2">

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,13 +24,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
+import {
+  createSegmentoAction,
+  getSustratosAction,
+} from "@/lib/actions/segmentos";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { createClient } from "@/utils/supabase/client";
-import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import { IMaskInput } from "react-imask";
-import type { ControllerRenderProps } from "react-hook-form";
+import { toast } from "sonner";
+import * as z from "zod";
 
 // Definir el esquema de validación
 const formSchema = z.object({
@@ -46,7 +48,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 interface NuevoSegmentoFormProps {
   transectaId: number;
-  onSegmentoCreado: () => void;
+  onSuccess?: () => void;
 }
 
 interface Sustrato {
@@ -57,11 +59,11 @@ interface Sustrato {
 
 export function NuevoSegmentoForm({
   transectaId,
-  onSegmentoCreado,
+  onSuccess,
 }: NuevoSegmentoFormProps) {
   const [sustratos, setSustratos] = useState<Sustrato[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const supabase = createClient();
+  const [loading, setLoading] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -76,23 +78,21 @@ export function NuevoSegmentoForm({
 
   useEffect(() => {
     const fetchSustratos = async () => {
-      const { data, error } = await supabase
-        .from("sustratos")
-        .select("*")
-        .order("codigo");
+      const result = await getSustratosAction();
 
-      if (error) {
+      if (result.error) {
         toast.error("Error al cargar sustratos");
         return;
       }
 
-      setSustratos(data || []);
+      setSustratos(result.data || []);
     };
 
     fetchSustratos();
-  }, [supabase]);
+  }, []);
 
   const onSubmit = async (values: FormValues) => {
+    setLoading(true);
     try {
       // Convertir coordenadas sexagesimales a decimales
       const latDecimal = sexagesimalToDecimal(values.latitud);
@@ -106,133 +106,106 @@ export function NuevoSegmentoForm({
       // Crear el punto WKT
       const wktPoint = `SRID=4326;POINT(${lonDecimal} ${latDecimal})`;
 
-      const { error } = await supabase.from("segmentos").insert([
-        {
-          transect_id: transectaId,
-          coordenadas_fin: wktPoint,
-          profundidad_final: values.profundidad,
-          sustrato_id: parseInt(values.sustratoId),
-          conteo: values.conteo,
-        },
-      ]);
+      const result = await createSegmentoAction({
+        transect_id: transectaId,
+        coordenadas_fin: wktPoint,
+        profundidad_final: values.profundidad,
+        sustrato_id: parseInt(values.sustratoId),
+        conteo: values.conteo,
+      });
 
-      if (error) throw error;
+      if (result.error) {
+        throw new Error(result.error);
+      }
 
       toast.success("Segmento creado exitosamente");
-      onSegmentoCreado();
+      onSuccess?.();
       setIsOpen(false);
       form.reset();
     } catch (error) {
-      toast.error("Error al crear el segmento");
+      toast.error(
+        error instanceof Error ? error.message : "Error al crear el segmento"
+      );
       console.error("Error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   // Función para convertir coordenadas sexagesimales a decimales
   const sexagesimalToDecimal = (coord: string): number | null => {
-    const match = coord.match(/^(\d+)°(\d+)'(\d+(\.\d+)?)"([NSEW])$/);
+    const match = coord.match(/(\d{2})°(\d{2})'(\d{2}\.\d{2})"([SW])/);
     if (!match) return null;
 
-    const degrees = parseInt(match[1]);
-    const minutes = parseInt(match[2]);
-    const seconds = parseFloat(match[3]);
-    const direction = match[5];
+    const [, degrees, minutes, seconds, direction] = match;
+    let decimal =
+      parseFloat(degrees) +
+      parseFloat(minutes) / 60 +
+      parseFloat(seconds) / 3600;
 
-    let decimal = degrees + minutes / 60 + seconds / 3600;
-    if (direction === "S" || direction === "W") decimal = -decimal;
+    if (direction === "S" || direction === "W") {
+      decimal = -decimal;
+    }
 
     return decimal;
-  };
-
-  const handleCoordinateAccept = (
-    value: string,
-    field: ControllerRenderProps<FormValues, "latitud" | "longitud">
-  ) => {
-    field.onChange(value);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          Agregar Segmento
-        </Button>
+        <Button>Nuevo Segmento</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Nuevo Segmento</DialogTitle>
+          <DialogTitle>Agregar Nuevo Segmento</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-2">
-              <FormField
-                control={form.control}
-                name="latitud"
-                render={({
-                  field,
-                }: {
-                  field: ControllerRenderProps<FormValues, "latitud">;
-                }) => (
-                  <FormItem>
-                    <FormLabel>Latitud</FormLabel>
-                    <FormControl>
-                      <IMaskInput
-                        mask={"00°00'00.00\"S"}
-                        unmask={false}
-                        value={field.value}
-                        onAccept={(value) =>
-                          handleCoordinateAccept(value, field)
-                        }
-                        placeholder={"42°19'25.83\"S"}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="longitud"
-                render={({
-                  field,
-                }: {
-                  field: ControllerRenderProps<FormValues, "longitud">;
-                }) => (
-                  <FormItem>
-                    <FormLabel>Longitud</FormLabel>
-                    <FormControl>
-                      <IMaskInput
-                        mask={"00°00'00.00\"W"}
-                        unmask={false}
-                        value={field.value}
-                        onAccept={(value) =>
-                          handleCoordinateAccept(value, field)
-                        }
-                        placeholder={"64°18'59.44\"W"}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="latitud"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Latitud</FormLabel>
+                  <FormControl>
+                    <IMaskInput
+                      {...field}
+                      mask={"00°00'00.00\"S"}
+                      unmask={false}
+                      lazy={false}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="longitud"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Longitud</FormLabel>
+                  <FormControl>
+                    <IMaskInput
+                      {...field}
+                      mask={"00°00'00.00\"W"}
+                      unmask={false}
+                      lazy={false}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="profundidad"
-              render={({
-                field,
-              }: {
-                field: ControllerRenderProps<FormValues, "profundidad">;
-              }) => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Profundidad (m)</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
-                      step="0.1"
                       {...field}
                       onChange={(e) =>
                         field.onChange(parseFloat(e.target.value))
@@ -245,12 +218,38 @@ export function NuevoSegmentoForm({
             />
             <FormField
               control={form.control}
+              name="sustratoId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sustrato</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar sustrato" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {sustratos.map((sustrato) => (
+                        <SelectItem
+                          key={sustrato.id}
+                          value={sustrato.id.toString()}
+                        >
+                          {`${sustrato.codigo} - ${sustrato.descripcion}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="conteo"
-              render={({
-                field,
-              }: {
-                field: ControllerRenderProps<FormValues, "conteo">;
-              }) => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Conteo</FormLabel>
                   <FormControl>
@@ -264,47 +263,9 @@ export function NuevoSegmentoForm({
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="sustratoId"
-              render={({
-                field,
-              }: {
-                field: ControllerRenderProps<FormValues, "sustratoId">;
-              }) => (
-                <FormItem>
-                  <FormLabel>Sustrato</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar sustrato" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {sustratos.map((sustrato) => (
-                        <SelectItem
-                          key={sustrato.id}
-                          value={sustrato.id.toString()}
-                        >
-                          {sustrato.codigo} - {sustrato.descripcion}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex justify-end space-x-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit">Guardar</Button>
-            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Guardando..." : "Guardar"}
+            </Button>
           </form>
         </Form>
       </DialogContent>
