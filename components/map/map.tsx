@@ -116,11 +116,13 @@ export function Map({ segmentos }: MapProps) {
                             <h3 className="font-bold">
                               Segmento {segmento.numero} - Fin
                             </h3>
-                            <p>
-                              Profundidad: {segmento.coordenadasFin.profundidad}
-                              m
+                            <p className="flex flex-col">
+                              <span>
+                                Profundidad:{" "}
+                                {segmento.coordenadasFin.profundidad}m
+                              </span>
                               {segmento.conteo && (
-                                <div>Conteo: {segmento.conteo}</div>
+                                <span>Conteo: {segmento.conteo}</span>
                               )}
                             </p>
                           </div>
@@ -149,10 +151,12 @@ export function Map({ segmentos }: MapProps) {
                         <h3 className="font-bold">
                           Segmento {segmento.numero} - Fin
                         </h3>
-                        <p>
-                          Profundidad: {segmento.coordenadasFin.profundidad}m
+                        <p className="flex flex-col">
+                          <span>
+                            Profundidad: {segmento.coordenadasFin.profundidad}m
+                          </span>
                           {segmento.conteo && (
-                            <div>Conteo: {segmento.conteo}</div>
+                            <span>Conteo: {segmento.conteo}</span>
                           )}
                         </p>
                       </div>

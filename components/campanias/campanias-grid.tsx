@@ -16,6 +16,21 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loading } from "../ui/loading";
 import { getCampaniasAction } from "@/lib/actions/campanias";
 
+interface CampaniaData {
+  id: number;
+  nombre: string;
+  inicio: string;
+  fin: string;
+  observaciones: string | null;
+  responsable: Array<{
+    id: number;
+    nombre: string;
+    apellido: string;
+    rol: string;
+  }>;
+  cantidadTransectas: Array<{ count: number }>;
+}
+
 export function CampaniasGrid() {
   const [campanias, setCampanias] = useState<Campania[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,10 +44,14 @@ export function CampaniasGrid() {
         throw new Error(result.error);
       }
 
-      const campaniasProcesadas = result.data?.map((item) => ({
+      if (!result.data) {
+        throw new Error("No se encontraron datos");
+      }
+
+      const campaniasProcesadas = result.data.map((item: CampaniaData) => ({
         id: item.id,
         nombre: item.nombre,
-        responsable: item.responsable || {
+        responsable: item.responsable?.[0] || {
           id: 0,
           nombre: "Sin responsable",
           apellido: "",
@@ -43,7 +62,7 @@ export function CampaniasGrid() {
         cantidadTransectas: item.cantidadTransectas?.[0]?.count || 0,
       }));
 
-      setCampanias(campaniasProcesadas || []);
+      setCampanias(campaniasProcesadas);
     } catch (error) {
       console.error("Error:", error);
       setError(

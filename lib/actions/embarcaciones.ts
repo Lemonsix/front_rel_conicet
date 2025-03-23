@@ -28,7 +28,13 @@ export async function getEmbarcacionesAction() {
 
   const { data, error } = await supabase
     .from("embarcaciones")
-    .select("*")
+    .select(
+      `
+      id,
+      nombre,
+      matricula
+    `
+    )
     .order("id", { ascending: true });
 
   if (error) {

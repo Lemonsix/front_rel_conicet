@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CoordenadaInput } from "@/components/coordenadas_input";
 import {
   createSegmentoAction,
   getSustratosAction,
@@ -31,14 +32,23 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { IMaskInput } from "react-imask";
 import { toast } from "sonner";
 import * as z from "zod";
 
 // Definir el esquema de validación
 const formSchema = z.object({
-  latitud: z.string().min(1, "La latitud es requerida"),
-  longitud: z.string().min(1, "La longitud es requerida"),
+  latitud: z.object({
+    grados: z.number().min(0).max(90),
+    minutos: z.number().min(0).max(59),
+    segundos: z.number().min(0).max(59.99),
+    direccion: z.enum(["N", "S"]),
+  }),
+  longitud: z.object({
+    grados: z.number().min(0).max(180),
+    minutos: z.number().min(0).max(59),
+    segundos: z.number().min(0).max(59.99),
+    direccion: z.enum(["E", "W"]),
+  }),
   profundidad: z.number().min(0, "La profundidad debe ser mayor o igual a 0"),
   conteo: z.number().min(0, "El conteo debe ser mayor o igual a 0"),
   sustratoId: z.string().min(1, "El sustrato es requerido"),
@@ -68,8 +78,18 @@ export function NuevoSegmentoForm({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      latitud: "",
-      longitud: "",
+      latitud: {
+        grados: 0,
+        minutos: 0,
+        segundos: 0,
+        direccion: "S",
+      },
+      longitud: {
+        grados: 0,
+        minutos: 0,
+        segundos: 0,
+        direccion: "W",
+      },
       profundidad: 0,
       conteo: 0,
       sustratoId: "",
@@ -95,8 +115,8 @@ export function NuevoSegmentoForm({
     setLoading(true);
     try {
       // Convertir coordenadas sexagesimales a decimales
-      const latDecimal = sexagesimalToDecimal(values.latitud);
-      const lonDecimal = sexagesimalToDecimal(values.longitud);
+      const latDecimal = coordenadaToDecimal(values.latitud);
+      const lonDecimal = coordenadaToDecimal(values.longitud);
 
       if (latDecimal === null || lonDecimal === null) {
         toast.error("Error al convertir las coordenadas");
@@ -133,17 +153,15 @@ export function NuevoSegmentoForm({
   };
 
   // Función para convertir coordenadas sexagesimales a decimales
-  const sexagesimalToDecimal = (coord: string): number | null => {
-    const match = coord.match(/(\d{2})°(\d{2})'(\d{2}\.\d{2})"([SW])/);
-    if (!match) return null;
+  const coordenadaToDecimal = (coord: {
+    grados: number;
+    minutos: number;
+    segundos: number;
+    direccion: string;
+  }): number | null => {
+    let decimal = coord.grados + coord.minutos / 60 + coord.segundos / 3600;
 
-    const [, degrees, minutes, seconds, direction] = match;
-    let decimal =
-      parseFloat(degrees) +
-      parseFloat(minutes) / 60 +
-      parseFloat(seconds) / 3600;
-
-    if (direction === "S" || direction === "W") {
+    if (coord.direccion === "S" || coord.direccion === "W") {
       decimal = -decimal;
     }
 
@@ -165,36 +183,22 @@ export function NuevoSegmentoForm({
               control={form.control}
               name="latitud"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Latitud</FormLabel>
-                  <FormControl>
-                    <IMaskInput
-                      {...field}
-                      mask={"00°00'00.00\"S"}
-                      unmask={false}
-                      lazy={false}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                <CoordenadaInput
+                  label="Latitud"
+                  field={field}
+                  direccionOptions={["N", "S"]}
+                />
               )}
             />
             <FormField
               control={form.control}
               name="longitud"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Longitud</FormLabel>
-                  <FormControl>
-                    <IMaskInput
-                      {...field}
-                      mask={"00°00'00.00\"W"}
-                      unmask={false}
-                      lazy={false}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                <CoordenadaInput
+                  label="Longitud"
+                  field={field}
+                  direccionOptions={["E", "W"]}
+                />
               )}
             />
             <FormField

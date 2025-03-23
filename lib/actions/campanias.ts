@@ -28,11 +28,17 @@ export async function createCampaniaAction(formData: {
 export async function getCampaniasAction() {
   const supabase = await createClient();
 
-  const { data, error } = await supabase.from("campanias").select(`
-      *,
+  const { data, error } = await supabase.from("campanias").select(
+    `
+      id,
+      nombre,
+      inicio,
+      fin,
+      observaciones,
       responsable:personas(id, nombre, apellido, rol),
       cantidadTransectas:transectas(count)
-    `);
+    `
+  );
 
   if (error) {
     return { error: error.message };

@@ -31,7 +31,13 @@ export async function getSustratosAction() {
 
   const { data, error } = await supabase
     .from("sustratos")
-    .select("*")
+    .select(
+      `
+      id,
+      codigo,
+      descripcion
+    `
+    )
     .order("codigo");
 
   if (error) {
