@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,40 +11,86 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createPersonaAction } from "@/lib/actions/personas";
+import {
+  createPersonaAction,
+  updatePersonaAction,
+} from "@/lib/actions/personas";
+import { Persona } from "@/lib/types/persona";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// Roles disponibles
+const ROLES = ["BUZO", "PLANILLERO", "INVESTIGADOR", "PROGRAMADOR"];
 
 interface PersonaFormProps {
   onSuccess?: () => void;
+  persona?: Persona;
+  mode?: "create" | "edit";
+  trigger?: React.ReactNode;
 }
 
-export function PersonaForm({ onSuccess }: PersonaFormProps) {
+export function PersonaForm({
+  onSuccess,
+  persona,
+  mode = "create",
+  trigger,
+}: PersonaFormProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
-  const [rol, setRol] = useState("");
+  const [rol, setRol] = useState(ROLES[0]);
+
+  // Cargar datos de la persona cuando se edita
+  useEffect(() => {
+    if (persona && mode === "edit") {
+      setNombre(persona.nombre);
+      setApellido(persona.apellido);
+      setRol(persona.rol);
+    }
+  }, [persona, mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const result = await createPersonaAction({ nombre, apellido, rol });
-
-      if (result.error) {
-        throw new Error(result.error);
+      if (mode === "create") {
+        const result = await createPersonaAction({ nombre, apellido, rol });
+        if (result.error) {
+          throw new Error(result.error);
+        }
+        toast.success("Persona agregada exitosamente");
+      } else if (mode === "edit" && persona) {
+        const result = await updatePersonaAction(persona.id, {
+          nombre,
+          apellido,
+          rol,
+        });
+        if (result.error) {
+          throw new Error(result.error);
+        }
+        toast.success("Persona actualizada exitosamente");
       }
 
-      toast.success("Persona agregada exitosamente");
       setNombre("");
       setApellido("");
-      setRol("");
+      setRol(ROLES[0]);
       setOpen(false);
       onSuccess?.();
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Error al agregar persona"
+        error instanceof Error
+          ? error.message
+          : mode === "create"
+          ? "Error al agregar persona"
+          : "Error al actualizar persona"
       );
       console.error("Error:", error);
     } finally {
@@ -52,14 +98,19 @@ export function PersonaForm({ onSuccess }: PersonaFormProps) {
     }
   };
 
+  const dialogTitle =
+    mode === "create" ? "Agregar Nueva Persona" : "Editar Persona";
+  const buttonText = mode === "create" ? "Nueva Persona" : "Editar";
+  const submitText = loading ? "Guardando..." : "Guardar";
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>Nueva Persona</Button>
+        {trigger || <Button>{buttonText}</Button>}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Agregar Nueva Persona</DialogTitle>
+          <DialogTitle>{dialogTitle}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -82,15 +133,21 @@ export function PersonaForm({ onSuccess }: PersonaFormProps) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="rol">Rol</Label>
-            <Input
-              id="rol"
-              value={rol}
-              onChange={(e) => setRol(e.target.value)}
-              required
-            />
+            <Select value={rol} onValueChange={setRol} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar rol" />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLES.map((rolOption) => (
+                  <SelectItem key={rolOption} value={rolOption}>
+                    {rolOption}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Guardando..." : "Guardar"}
+            {submitText}
           </Button>
         </form>
       </DialogContent>

@@ -60,3 +60,28 @@ export async function getPersonasByRolAction(rol: string) {
 
   return { data };
 }
+
+export async function updatePersonaAction(
+  id: number,
+  formData: {
+    nombre: string;
+    apellido: string;
+    rol: string;
+  }
+) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("personas")
+    .update(formData)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/personas");
+  return { data };
+}

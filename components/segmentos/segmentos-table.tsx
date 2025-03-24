@@ -11,7 +11,7 @@ import { Segmento } from "@/lib/types/segmento";
 import { ArrowDownFromLine, Pencil } from "lucide-react";
 import { useState, useEffect } from "react";
 import { EditarSegmentoForm } from "./editar-segmento-form";
-import { formatCoordinates } from "@/lib/utils/coordinates";
+import { parseCoordinates } from "@/lib/utils/coordinates";
 import { calcularDistanciaHaversine } from "@/lib/actions/segmentos";
 
 interface SegmentosTableProps {
@@ -83,10 +83,16 @@ export function SegmentosTable({
                   (segmento.coordenadasInicio.latitud !== 0 ||
                     segmento.coordenadasInicio.longitud !== 0) ? (
                     <>
-                      <span className="text-sm">
-                        {formatCoordinates(
+                      <span className="text-xs">
+                        {parseCoordinates(
                           segmento.coordenadasInicio.latitud,
-                          segmento.coordenadasInicio.longitud
+                          "lat"
+                        )}
+                      </span>
+                      <span className="text-xs">
+                        {parseCoordinates(
+                          segmento.coordenadasInicio.longitud,
+                          "lon"
                         )}
                       </span>
                       <span className="text-xs text-muted-foreground">
@@ -106,10 +112,16 @@ export function SegmentosTable({
                   (segmento.coordenadasFin.latitud !== 0 ||
                     segmento.coordenadasFin.longitud !== 0) ? (
                     <>
-                      <span className="text-sm">
-                        {formatCoordinates(
+                      <span className="text-xs">
+                        {parseCoordinates(
                           segmento.coordenadasFin.latitud,
-                          segmento.coordenadasFin.longitud
+                          "lat"
+                        )}
+                      </span>
+                      <span className="text-xs">
+                        {parseCoordinates(
+                          segmento.coordenadasFin.longitud,
+                          "lon"
                         )}
                       </span>
                       <span className="text-xs text-muted-foreground">
@@ -129,9 +141,18 @@ export function SegmentosTable({
                   : "-"}
               </TableCell>
               <TableCell>
-                {segmento.sustrato
-                  ? `${segmento.sustrato.codigo} - ${segmento.sustrato.descripcion}`
-                  : "-"}
+                {segmento.sustrato ? (
+                  <div className="relative group">
+                    <span className="font-medium">
+                      {segmento.sustrato.codigo}
+                    </span>
+                    <div className="absolute z-10 invisible opacity-0 p-2 bg-black text-white text-xs rounded w-max max-w-xs group-hover:opacity-100 group-hover:visible transition-opacity bottom-full mb-1">
+                      {segmento.sustrato.descripcion}
+                    </div>
+                  </div>
+                ) : (
+                  "-"
+                )}
               </TableCell>
               <TableCell>{segmento.conteo}</TableCell>
               <TableCell>{segmento.estMinima}</TableCell>
@@ -154,6 +175,7 @@ export function SegmentosTable({
           segmento={segmentoAEditar}
           isOpen={!!segmentoAEditar}
           onClose={() => setSegmentoAEditar(null)}
+          onSuccess={onSegmentoCreado}
         />
       )}
     </>

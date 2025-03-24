@@ -97,3 +97,31 @@ export function parseWKTPoint(
     return undefined;
   }
 }
+
+/**
+ * Parsea coordenadas individuales (latitud o longitud) en formato de grados, minutos y segundos
+ * @param coordinate Valor decimal de la coordenada
+ * @param type Tipo de coordenada: "lat" para latitud o "lon" para longitud
+ * @param format Formato de salida, por defecto "DMS" (grados, minutos, segundos)
+ * @returns String formateado de la coordenada
+ */
+export function parseCoordinates(
+  coordinate: number,
+  type: "lat" | "lon",
+  format: "DMS" | "decimal" = "DMS"
+): string {
+  if (format === "decimal") {
+    return coordinate.toFixed(6);
+  }
+
+  const tipo = type === "lat" ? "latitud" : "longitud";
+  const { grados, minutos, segundos, direccion } = decimalToSexagesimal(
+    coordinate,
+    tipo
+  );
+
+  // Formatear con grados, minutos y segundos
+  return `${Math.abs(grados)}° ${minutos}' ${segundos.toFixed(
+    1
+  )}" ${direccion}`;
+}

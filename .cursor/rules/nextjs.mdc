@@ -6,3 +6,6 @@ alwaysApply: true
 
 # Nextjs
 - Basarse siempre en la documentacion de la ultima version disponible de Nextjs.
+- El package manager es pnpm.
+- El lenguaje es typescript
+- La libreria de estilado es Tailwindcss v4

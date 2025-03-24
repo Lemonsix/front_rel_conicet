@@ -15,6 +15,8 @@ import { getEmbarcacionesAction } from "@/lib/actions/embarcaciones";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loading } from "@/components/ui/loading";
+import { Button } from "@/components/ui/button";
+import { Pencil } from "lucide-react";
 
 function EmbarcacionesTableContent() {
   const [embarcaciones, setEmbarcaciones] = useState<Embarcacion[]>([]);
@@ -57,6 +59,7 @@ function EmbarcacionesTableContent() {
               <TableHead>ID</TableHead>
               <TableHead>Nombre</TableHead>
               <TableHead>Matrícula</TableHead>
+              <TableHead className="w-[100px]">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -65,6 +68,18 @@ function EmbarcacionesTableContent() {
                 <TableCell>{embarcacion.id}</TableCell>
                 <TableCell>{embarcacion.nombre}</TableCell>
                 <TableCell>{embarcacion.matricula}</TableCell>
+                <TableCell>
+                  <EmbarcacionForm
+                    mode="edit"
+                    embarcacion={embarcacion}
+                    onSuccess={fetchEmbarcaciones}
+                    trigger={
+                      <Button size="icon" variant="ghost">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    }
+                  />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

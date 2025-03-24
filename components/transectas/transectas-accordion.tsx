@@ -7,62 +7,18 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { getSegmentosByTransectaAction } from "@/lib/actions/segmentos";
+import { mapearSegmentos } from "@/lib/utils/segmentos-mapper";
 import { Segmento } from "@/lib/types/segmento";
 import { Transecta } from "@/lib/types/transecta";
-import { parseGeoJSONPoint } from "@/lib/utils/gps";
 import { useState } from "react";
 import { toast } from "sonner";
 import { SegmentosTable } from "../segmentos/segmentos-table";
-import { fromTheme } from "tailwind-merge";
 
 interface TransectasAccordionProps {
   transectas: Transecta[];
   onTransectaOpen: (transectaId: number) => void;
   onTransectaClose: (transectaId: number) => void;
   onSegmentoCreado: () => void;
-}
-
-interface SegmentoData {
-  id: number;
-  numero: number;
-  largo: number;
-  profundidad_inicial: number;
-  profundidad_final: number;
-  sustrato: Array<{
-    id: number;
-    codigo: string;
-    descripcion: string;
-  }>;
-  conteo: number;
-  est_minima: number;
-  coordenadas_inicio: string;
-  coordenadas_fin: string;
-  tiene_marisqueo: string;
-  tiene_cuadrados: string;
-  marisqueos?: Array<{
-    id: number;
-    segmento_id: number;
-    timestamp: string;
-    tiempo: number;
-    coordenadas: string;
-    tiene_muestreo: boolean;
-    buzo_id: number;
-    n_captura: number;
-    peso_muestra: number;
-  }>;
-  cuadrados?: Array<{
-    id: number;
-    segmento_id: number;
-    replica: number;
-    coordenadas_inicio: string;
-    coordenadas_fin: string;
-    profundidad_inicio: number;
-    profundidad_fin: number;
-    tiene_muestreo: boolean;
-    conteo: number;
-    tamanio: number;
-    timestamp: string;
-  }>;
 }
 
 export function TransectasAccordion({
@@ -101,92 +57,14 @@ export function TransectasAccordion({
         throw new Error("No se encontraron datos");
       }
 
-      // Mapear los segmentos al formato correcto
-      const segmentosMapeados: Segmento[] = (
-        result.data as unknown as SegmentoData[]
-      ).map((s) => {
-        const rawCoordsInicio = s.coordenadas_inicio
-          ? parseGeoJSONPoint(s.coordenadas_inicio, s.profundidad_inicial)
-          : undefined;
-
-        const rawCoordsFin = s.coordenadas_fin
-          ? parseGeoJSONPoint(s.coordenadas_fin, s.profundidad_final)
-          : undefined;
-
-        // Convertir al formato Waypoint requerido
-        const coordenadasInicio = rawCoordsInicio
-          ? {
-              latitud: rawCoordsInicio.lat,
-              longitud: rawCoordsInicio.lng,
-              profundidad: rawCoordsInicio.depth,
-            }
-          : {
-              latitud: 0,
-              longitud: 0,
-              profundidad: s.profundidad_inicial || 0,
-            };
-
-        const coordenadasFin = rawCoordsFin
-          ? {
-              latitud: rawCoordsFin.lat,
-              longitud: rawCoordsFin.lng,
-              profundidad: rawCoordsFin.depth,
-            }
-          : {
-              latitud: 0,
-              longitud: 0,
-              profundidad: s.profundidad_final || 0,
-            };
-
-        const segmento = {
-          id: s.id,
-          transectId: transectaId,
-          numero: s.numero,
-          largo: s.largo,
-          profundidadInicial: s.profundidad_inicial,
-          profundidadFinal: s.profundidad_final,
-          sustrato: s.sustrato?.[0] ?? null,
-          conteo: s.conteo,
-          estMinima: s.est_minima || 0,
-          tieneMarisqueo: s.tiene_marisqueo === "SI",
-          tieneCuadrados: s.tiene_cuadrados === "SI",
-          coordenadasInicio: s.coordenadasInicio,
-          coordenadasFin: s.coordenadasFin,
-          marisqueos: s.marisqueos?.map((m) => ({
-            id: m.id,
-            segmentoId: m.segmento_id,
-            timestamp: m.timestamp,
-            tiempo: m.tiempo,
-            coordenadas: m.coordenadas,
-            tieneMuestreo: m.tiene_muestreo,
-            buzoId: m.buzo_id,
-            NroCaptura: m.n_captura,
-            PesoMuestra: m.peso_muestra,
-          })),
-          cuadrados: s.cuadrados?.map((c) => ({
-            id: c.id,
-            segmentoId: c.segmento_id,
-            replica: c.replica,
-            coordenadasInicio: c.coordenadas_inicio,
-            coordenadasFin: c.coordenadas_fin,
-            profundidadInicio: c.profundidad_inicio.toString(),
-            profundidadFin: c.profundidad_fin.toString(),
-            tieneMuestreo: c.tiene_muestreo,
-            conteo: c.conteo,
-            tamanio: c.tamanio,
-            timestamp: c.timestamp,
-          })),
-        };
-
-        console.log("Segmento mapeado:", segmento);
-        return segmento;
-      });
+      // Mapear los segmentos usando la función importada
+      const segmentosMapeados = mapearSegmentos(result.data, transectaId);
 
       console.log("Segmentos mapeados:", segmentosMapeados);
 
       setSegmentosCargados((prev) => ({
         ...prev,
-        [transectaId]: segmentosMapeados,
+        [transectaId]: segmentosMapeados as Segmento[],
       }));
     } catch (error) {
       console.error("Error cargando segmentos:", error);

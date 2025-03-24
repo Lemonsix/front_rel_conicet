@@ -76,6 +76,7 @@ interface EditarSegmentoFormProps {
   segmento: Segmento;
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
 interface Sustrato {
@@ -98,6 +99,7 @@ export function EditarSegmentoForm({
   segmento,
   isOpen,
   onClose,
+  onSuccess,
 }: EditarSegmentoFormProps) {
   const [sustratos, setSustratos] = useState<Sustrato[]>([]);
   const [loading, setLoading] = useState(false);
@@ -215,6 +217,7 @@ export function EditarSegmentoForm({
 
       toast.success("Segmento actualizado exitosamente");
       onClose();
+      onSuccess?.();
     } catch (error) {
       toast.error(
         error instanceof Error

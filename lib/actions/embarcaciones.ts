@@ -43,3 +43,27 @@ export async function getEmbarcacionesAction() {
 
   return { data };
 }
+
+export async function updateEmbarcacionAction(
+  id: number,
+  formData: {
+    nombre: string;
+    matricula: string;
+  }
+) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("embarcaciones")
+    .update(formData)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/embarcaciones");
+  return { data };
+}

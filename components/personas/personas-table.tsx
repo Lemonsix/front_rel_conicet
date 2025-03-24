@@ -15,6 +15,8 @@ import { getPersonasAction } from "@/lib/actions/personas";
 import { ScrollArea } from "../ui/scroll-area";
 import { Loading } from "../ui/loading";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Pencil } from "lucide-react";
 
 function PersonasTableContent() {
   const [personas, setPersonas] = useState<Persona[]>([]);
@@ -58,6 +60,7 @@ function PersonasTableContent() {
               <TableHead>Nombre</TableHead>
               <TableHead>Apellido</TableHead>
               <TableHead>Rol</TableHead>
+              <TableHead className="w-[100px]">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -67,6 +70,18 @@ function PersonasTableContent() {
                 <TableCell>{persona.nombre}</TableCell>
                 <TableCell>{persona.apellido}</TableCell>
                 <TableCell>{persona.rol}</TableCell>
+                <TableCell>
+                  <PersonaForm
+                    mode="edit"
+                    persona={persona}
+                    onSuccess={fetchPersonas}
+                    trigger={
+                      <Button size="icon" variant="ghost">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    }
+                  />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
