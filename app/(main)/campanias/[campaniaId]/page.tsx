@@ -37,6 +37,7 @@ interface SegmentoDBData {
   largo: number;
   profundidad_inicial: number;
   profundidad_final: number;
+  sustrato_id: number;
   sustrato: Array<{
     id: number;
     codigo: string;
@@ -186,6 +187,7 @@ export default async function CampaniaPage({
           profundidadInicial: s.profundidad_inicial,
           profundidadFinal: s.profundidad_final,
           sustrato: s.sustrato[0],
+          sustratoId: s.sustrato_id,
           conteo: s.conteo,
           estMinima: s.est_minima || 0,
           tieneMarisqueo: s.tiene_marisqueo === "SI",

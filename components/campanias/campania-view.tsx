@@ -17,6 +17,74 @@ interface CampaniaViewProps {
   transectas: Transecta[];
 }
 
+// Interfaces para los datos que vienen de Supabase
+interface TransectaData {
+  id: number;
+  nombre: string;
+  observaciones?: string;
+  fecha: string;
+  hora_inicio: string;
+  hora_fin: string;
+  profundidad_inicial: number;
+  orientacion: string;
+  embarcacion_id?: number;
+  buzo_id?: number;
+  campania_id: number;
+  embarcacion?: Array<{
+    id: number;
+    nombre: string;
+    matricula: string;
+  }>;
+  buzo?: Array<{
+    id: number;
+    nombre: string;
+    apellido: string;
+    rol: string;
+  }>;
+  segmentos?: Array<{
+    id: number;
+    numero: number;
+    largo: number;
+    profundidad_inicial: number;
+    profundidad_final: number;
+    sustrato: Array<{
+      id: number;
+      codigo: string;
+      descripcion: string;
+    }>;
+    conteo: number;
+    est_minima: number;
+    coordenadas_inicio: string;
+    coordenadas_fin: string;
+    tiene_marisqueo: string;
+    tiene_cuadrados: string;
+    marisqueos?: Array<{
+      id: number;
+      segmento_id: number;
+      timestamp: string;
+      tiempo: number;
+      coordenadas: string;
+      tiene_muestreo: boolean;
+      buzo_id: number;
+      n_captura: number;
+      peso_muestra: number;
+    }>;
+    cuadrados?: Array<{
+      id: number;
+      segmento_id: number;
+      replica: number;
+      coordenadas_inicio: string;
+      coordenadas_fin: string;
+      profundidad_inicio: number;
+      profundidad_fin: number;
+      tiene_muestreo: boolean;
+      conteo: number;
+      tamanio: number;
+      timestamp: string;
+    }>;
+  }>;
+}
+
 export function CampaniaView({
   campania,
   transectas: initialTransectas,
@@ -104,8 +172,15 @@ export function CampaniaView({
         throw new Error("No se encontraron datos");
       }
 
+      // Validar que los datos sean del tipo correcto
+      if (!Array.isArray(result.data)) {
+        throw new Error("Los datos no tienen el formato esperado");
+      }
+
       // Mapear los datos al formato correcto
-      const mappedTransectas: Transecta[] = result.data.map((t) => ({
+      const mappedTransectas: Transecta[] = (
+        result.data as unknown as TransectaData[]
+      ).map((t) => ({
         id: t.id,
         nombre: t.nombre,
         observaciones: t.observaciones,
@@ -155,8 +230,8 @@ export function CampaniaView({
               replica: c.replica,
               coordenadasInicio: c.coordenadas_inicio,
               coordenadasFin: c.coordenadas_fin,
-              profundidadInicio: c.profundidad_inicio,
-              profundidadFin: c.profundidad_fin,
+              profundidadInicio: c.profundidad_inicio.toString(),
+              profundidadFin: c.profundidad_fin.toString(),
               tieneMuestreo: c.tiene_muestreo,
               conteo: c.conteo,
               tamanio: c.tamanio,

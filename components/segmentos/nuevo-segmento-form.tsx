@@ -374,7 +374,7 @@ export function NuevoSegmentoForm({
                             </FormItem>
                           )}
                         />
-                        <span className="text-base">'</span>
+                        <span className="text-base">&apos;</span>
                         <FormField
                           control={form.control}
                           name="coordenadas_inicio.latitud.segundos"
@@ -399,7 +399,7 @@ export function NuevoSegmentoForm({
                             </FormItem>
                           )}
                         />
-                        <span className="text-nowrap">"S</span>
+                        <span className="text-nowrap">&quot;S</span>
                       </div>
                     </div>
 
@@ -430,7 +430,7 @@ export function NuevoSegmentoForm({
                             </FormItem>
                           )}
                         />
-                        <span className="text-base">'</span>
+                        <span className="text-base">&apos;</span>
                         <FormField
                           control={form.control}
                           name="coordenadas_inicio.longitud.segundos"
@@ -455,7 +455,7 @@ export function NuevoSegmentoForm({
                             </FormItem>
                           )}
                         />
-                        <span className="text-nowrap">"O</span>
+                        <span className="text-nowrap">&quot;O</span>
                       </div>
                     </div>
                   </div>
@@ -471,7 +471,7 @@ export function NuevoSegmentoForm({
                           <FormControl>
                             <Input
                               type="number"
-                              className="text-center"
+                              placeholder="Ingrese la profundidad inicial"
                               {...field}
                               onChange={(e) =>
                                 field.onChange(
@@ -556,7 +556,7 @@ export function NuevoSegmentoForm({
                           </FormItem>
                         )}
                       />
-                      <span className="text-base">'</span>
+                      <span className="text-base">&apos;</span>
                       <FormField
                         control={form.control}
                         name="coordenadas_fin.latitud.segundos"
@@ -581,7 +581,7 @@ export function NuevoSegmentoForm({
                           </FormItem>
                         )}
                       />
-                      <span className="text-nowrap">" S</span>
+                      <span className="text-nowrap">&quot; S</span>
                     </div>
                   </div>
 
@@ -612,7 +612,7 @@ export function NuevoSegmentoForm({
                           </FormItem>
                         )}
                       />
-                      <span className="text-base">'</span>
+                      <span className="text-base">&apos;</span>
                       <FormField
                         control={form.control}
                         name="coordenadas_fin.longitud.segundos"
@@ -637,7 +637,7 @@ export function NuevoSegmentoForm({
                           </FormItem>
                         )}
                       />
-                      <span className="text-nowrap">" O</span>
+                      <span className="text-nowrap">&quot; O</span>
                     </div>
                   </div>
                 </div>
@@ -653,7 +653,7 @@ export function NuevoSegmentoForm({
                         <FormControl>
                           <Input
                             type="number"
-                            className="text-center"
+                            placeholder="Ingrese la profundidad final"
                             {...field}
                             onChange={(e) =>
                               field.onChange(Number.parseFloat(e.target.value))
@@ -681,6 +681,7 @@ export function NuevoSegmentoForm({
                     <FormControl>
                       <Input
                         type="number"
+                        placeholder="Ingrese el conteo"
                         {...field}
                         onChange={(e) =>
                           field.onChange(Number.parseInt(e.target.value))

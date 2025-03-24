@@ -2,7 +2,6 @@
 
 import { createClient } from "@/lib/utils/supabase/server";
 import { revalidatePath } from "next/cache";
-import { Transecta } from "../types/transecta";
 
 export async function getTransectasByCampaniaAction(campaniaId: number) {
   const supabase = await createClient();
@@ -39,7 +38,7 @@ export async function getTransectasByCampaniaAction(campaniaId: number) {
         largo,
         profundidad_inicial,
         profundidad_final,
-        sustrato:sustratos!segmentos_fk_sustratos(
+        sustrato:sustratos!segmentos_fk_sustratos(id)(
           id,
           codigo,
           descripcion
@@ -82,7 +81,7 @@ export async function getTransectasByCampaniaAction(campaniaId: number) {
   if (error) {
     return { error: error.message };
   }
-
+  console.log(JSON.stringify(data, null, 2));
   revalidatePath(`/campanias/${campaniaId}`);
   return { data };
 }

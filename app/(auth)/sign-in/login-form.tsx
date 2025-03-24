@@ -13,7 +13,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/utils/supabase/server";
 import { signIn, signInWithGoogle } from "./actions";
 
 export function LoginForm({

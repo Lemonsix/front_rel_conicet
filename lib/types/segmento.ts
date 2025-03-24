@@ -18,6 +18,8 @@ export interface Segmento {
   marisqueos?: Marisqueo[];
   cuadrados?: Cuadrado[];
   sustrato?: Sustrato;
+  sustratoId?: number;
+  distancia?: number;
 }
 
 export interface Waypoint {
