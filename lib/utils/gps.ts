@@ -40,7 +40,10 @@ export async function calcularDistanciaHaversine(
 }
 
 // Función para convertir decimal a formato sexagesimal (grados, minutos, segundos)
-export function decimalToSexagesimal(decimal: number): {
+export function decimalToSexagesimal(
+  decimal: number,
+  tipo: "latitud" | "longitud" = "latitud"
+): {
   grados: number;
   minutos: number;
   segundos: number;
@@ -52,15 +55,13 @@ export function decimalToSexagesimal(decimal: number): {
   const minutos = Math.floor(minutesNotTruncated);
   const segundos = Math.round((minutesNotTruncated - minutos) * 60 * 100) / 100;
 
-  // Dirección N/S para latitud, E/W para longitud
-  const direccion =
-    decimal >= 0
-      ? Math.abs(grados) > 90
-        ? "E"
-        : "N"
-      : Math.abs(grados) > 90
-      ? "W"
-      : "S";
+  // Dirección basada explícitamente en el tipo de coordenada
+  let direccion: string;
+  if (tipo === "latitud") {
+    direccion = decimal >= 0 ? "N" : "S";
+  } else {
+    direccion = decimal >= 0 ? "E" : "W";
+  }
 
   return { grados, minutos, segundos, direccion };
 }

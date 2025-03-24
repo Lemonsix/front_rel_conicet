@@ -40,8 +40,8 @@ function parseGeoJSONToCoordinates(
       }
 
       // Convertir a formato sexagesimal para UI
-      const latSexagesimal = decimalToSexagesimal(latitud);
-      const lonSexagesimal = decimalToSexagesimal(longitud);
+      const latSexagesimal = decimalToSexagesimal(latitud, "latitud");
+      const lonSexagesimal = decimalToSexagesimal(longitud, "longitud");
 
       // Formato completo para mostrar en UI
       const displayFormat = `${Math.abs(latSexagesimal.grados)}° ${

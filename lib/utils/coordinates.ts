@@ -30,11 +30,15 @@ export function formatCoordinates(lat: number, lon: number): string {
     return "Sin coordenadas";
   }
 
-  const latSex = decimalToSexagesimal(lat);
-  const lonSex = decimalToSexagesimal(lon);
+  const latSex = decimalToSexagesimal(lat, "latitud");
+  const lonSex = decimalToSexagesimal(lon, "longitud");
 
   // Usamos las propiedades del objeto para formatear
-  return `${latSex.grados}° ${latSex.minutos}' ${latSex.segundos}" ${latSex.direccion}, ${lonSex.grados}° ${lonSex.minutos}' ${lonSex.segundos}" ${lonSex.direccion}`;
+  return `${Math.abs(latSex.grados)}° ${latSex.minutos}' ${latSex.segundos}" ${
+    latSex.direccion
+  }, ${Math.abs(lonSex.grados)}° ${lonSex.minutos}' ${lonSex.segundos}" ${
+    lonSex.direccion
+  }`;
 }
 
 /**

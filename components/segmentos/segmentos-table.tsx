@@ -48,8 +48,6 @@ export function SegmentosTable({
     calcularDistancias();
   }, [segmentos]);
 
-  console.log("Segmentos en la tabla:", segmentos);
-
   return (
     <>
       <Table>
