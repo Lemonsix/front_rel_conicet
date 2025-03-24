@@ -9,9 +9,10 @@ import {
 } from "@/components/ui/table";
 import { Segmento } from "@/lib/types/segmento";
 import { ArrowDownFromLine, Pencil } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { EditarSegmentoForm } from "./editar-segmento-form";
 import { formatCoordinates } from "@/lib/utils/coordinates";
+import { calcularDistanciaHaversine } from "@/lib/actions/segmentos";
 
 interface SegmentosTableProps {
   segmentos: Segmento[];
@@ -23,6 +24,29 @@ export function SegmentosTable({
   onSegmentoCreado,
 }: SegmentosTableProps) {
   const [segmentoAEditar, setSegmentoAEditar] = useState<Segmento | null>(null);
+  const [distancias, setDistancias] = useState<Record<number, number>>({});
+
+  useEffect(() => {
+    const calcularDistancias = async () => {
+      const nuevasDistancias: Record<number, number> = {};
+
+      for (const segmento of segmentos) {
+        if (segmento.coordenadasInicio && segmento.coordenadasFin) {
+          const distancia = await calcularDistanciaHaversine(
+            segmento.coordenadasInicio.latitud,
+            segmento.coordenadasInicio.longitud,
+            segmento.coordenadasFin.latitud,
+            segmento.coordenadasFin.longitud
+          );
+          nuevasDistancias[segmento.id] = distancia;
+        }
+      }
+
+      setDistancias(nuevasDistancias);
+    };
+
+    calcularDistancias();
+  }, [segmentos]);
 
   console.log("Segmentos en la tabla:", segmentos);
 
@@ -101,7 +125,11 @@ export function SegmentosTable({
                   )}
                 </div>
               </TableCell>
-              <TableCell>{segmento.distancia}m</TableCell>
+              <TableCell>
+                {distancias[segmento.id]
+                  ? `${Math.round(distancias[segmento.id])}m`
+                  : "-"}
+              </TableCell>
               <TableCell>
                 {segmento.sustrato
                   ? `${segmento.sustrato.codigo} - ${segmento.sustrato.descripcion}`
