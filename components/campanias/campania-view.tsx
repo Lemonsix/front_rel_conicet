@@ -8,9 +8,9 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { parseWKTPoint } from "@/lib/utils/coordinates";
 import { getTransectasByCampaniaAction } from "@/lib/actions/transectas";
-import { TransectaModal } from "./transecta-modal";
 import { getEmbarcacionesAction } from "@/lib/actions/embarcaciones";
 import { getPersonasByRolAction } from "@/lib/actions/personas";
+import { TransectaModal } from "../transectas/transecta-modal";
 
 interface CampaniaViewProps {
   campania: Campania;
