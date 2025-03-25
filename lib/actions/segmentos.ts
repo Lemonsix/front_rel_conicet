@@ -164,24 +164,20 @@ export async function getSegmentosByTransectaAction(
       .from("segmentos")
       .select(
         `
-          id,
-          transecta_id,
-          numero,
-          largo,
-          profundidad_inicial,
-          profundidad_final,
-          conteo,
-          est_minima,
-          tiene_marisqueo,
-          tiene_cuadrados,
-          coordenadas_inicio,
-          coordenadas_fin,
-          sustrato:sustratos (
-            id,
-            codigo,
-            descripcion
-          )
-        `
+        id,
+        transecta_id,
+        numero,
+        largo,
+        profundidad_inicial,
+        profundidad_final,
+        conteo,
+        est_minima,
+        tiene_marisqueo,
+        tiene_cuadrados,
+        coordenadas_inicio,
+        coordenadas_fin,
+        sustrato_id
+      `
       )
       .eq("transecta_id", transectaId)
       .order("numero");
@@ -198,7 +194,29 @@ export async function getSegmentosByTransectaAction(
       );
       return { data: [], error: null };
     }
-    return { data: segmentos, error: null };
+
+    // Obtener los sustratos para cada segmento
+    const sustratosIds = [...new Set(segmentos.map((s) => s.sustrato_id))];
+    const { data: sustratos, error: sustratosError } = await supabase
+      .from("sustratos")
+      .select("id, codigo, descripcion")
+      .in("id", sustratosIds);
+
+    if (sustratosError) {
+      console.error("Error al obtener sustratos:", sustratosError);
+      return { data: [], error: sustratosError.message };
+    }
+
+    // Crear un mapa de sustratos para acceso rápido
+    const sustratosMap = new Map(sustratos?.map((s) => [s.id, s]) || []);
+
+    // Mapear los segmentos con sus sustratos
+    const segmentosConSustratos = segmentos.map((segmento) => ({
+      ...segmento,
+      sustrato: sustratosMap.get(segmento.sustrato_id) || null,
+    }));
+
+    return { data: segmentosConSustratos, error: null };
   } catch (error) {
     console.error("Error inesperado:", error);
     return { data: [], error: String(error) };

@@ -120,20 +120,34 @@ export function CampaniaView({
 
   const handleSegmentoCreado = async () => {
     try {
-      const result = await getTransectasByCampaniaAction(campania.id);
+      // Recargar los segmentos de todas las transectas abiertas
+      for (const transectaId of transectasAbiertas) {
+        setCargandoSegmentos((prev) => ({ ...prev, [transectaId]: true }));
+        try {
+          const result = await getSegmentosByTransectaAction(transectaId);
+          if (result.error) {
+            throw new Error(result.error);
+          }
 
-      if (result.error) {
-        throw new Error(result.error);
+          if (!result.data) {
+            throw new Error("No se encontraron datos");
+          }
+
+          const segmentosMapeados = mapSegmentos(result.data);
+
+          setSegmentosCargados((prev) => ({
+            ...prev,
+            [transectaId]: segmentosMapeados as Segmento[],
+          }));
+        } catch (error) {
+          console.error("Error cargando segmentos:", error);
+          toast.error("Error al cargar los segmentos");
+        } finally {
+          setCargandoSegmentos((prev) => ({ ...prev, [transectaId]: false }));
+        }
       }
-
-      if (!result.data) {
-        throw new Error("No se encontraron datos");
-      }
-
-      const mappedTransectas = mapTransectas(result.data);
-      setTransectas(mappedTransectas);
     } catch (error) {
-      console.error("Error recargando transectas:", error);
+      console.error("Error recargando segmentos:", error);
       toast.error("Error al actualizar los datos");
     }
   };

@@ -428,7 +428,6 @@ export function EditarSegmentoForm({
                             <FormControl>
                               <Input
                                 type="number"
-                                readOnly
                                 className="w-20 text-center "
                                 {...field}
                                 onChange={(e) =>
