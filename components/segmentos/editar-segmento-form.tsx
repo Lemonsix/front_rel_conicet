@@ -248,9 +248,6 @@ export function EditarSegmentoForm({
         );
 
         setSustratos(sustratosFiltrados);
-
-        console.log("Sustrato ID del segmento:", segmento.sustratoId);
-        console.log("Valor actual del form:", form.getValues("sustratoId"));
       } catch (error) {
         toast.error("Error al cargar sustratos");
       }

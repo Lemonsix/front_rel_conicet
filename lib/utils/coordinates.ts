@@ -96,8 +96,6 @@ export function formatCoordinates(lat: number, lon: number): string {
   if (lat === 0 && lon === 0) return "Sin coordenadas";
 
   try {
-    console.log("Formateando coordenadas:", { lat, lon });
-
     // Si solo tenemos una coordenada, solo formateamos esa
     if (lat === 0) {
       const lonSex = decimalToSexagesimal(lon, "longitud");
@@ -119,8 +117,6 @@ export function formatCoordinates(lat: number, lon: number): string {
     const latSex = decimalToSexagesimal(lat, "latitud");
     const lonSex = decimalToSexagesimal(lon, "longitud");
 
-    console.log("Coordenadas sexagesimales:", { latSex, lonSex });
-
     // Formatear con 2 decimales para los segundos
     const latSeconds = latSex.segundos.toFixed(2);
     const lonSeconds = lonSex.segundos.toFixed(2);
@@ -141,8 +137,6 @@ export function parseWKTToCoordinates(
   profundidad: number = 0
 ): Coordenada | null {
   if (!wktString || wktString.trim() === "") return null;
-
-  console.log("Intentando parsear WKT:", wktString);
 
   // Intentamos diferentes patrones de coincidencia
   // 1. Patrón estándar WKT: POINT(lon lat)
@@ -169,7 +163,6 @@ export function parseWKTToCoordinates(
     profundidad,
   };
 
-  console.log("WKT parseado con éxito:", result);
   return result;
 }
 
@@ -178,8 +171,6 @@ export function parseGeoJSONToCoordinates(
   profundidad: number = 0
 ): Coordenada | null {
   if (!geoJSONString || geoJSONString.trim() === "") return null;
-
-  console.log("Intentando parsear GeoJSON:", geoJSONString);
 
   try {
     // Si es un string JSON, intentamos parsearlo
@@ -190,7 +181,6 @@ export function parseGeoJSONToCoordinates(
       const parsed = parseGeoJSONPoint(geoJSONString, profundidad);
 
       if (parsed) {
-        console.log("GeoJSON parseado con éxito:", parsed);
         return {
           latitud: parsed.lat,
           longitud: parsed.lng,
@@ -212,7 +202,6 @@ export function parseGeoJSONToCoordinates(
         profundidad,
       };
 
-      console.log("Coordenadas extraídas del string:", result);
       return result;
     }
 
@@ -291,8 +280,6 @@ export function parseWKBHex(wkbHex: string): Coordenada | null {
     // Convertir de hex a IEEE 754 double (64 bits)
     const xDouble = hexToDouble(xHex);
     const yDouble = hexToDouble(yHex);
-
-    console.log("WKB Hex parseado:", { lng: xDouble, lat: yDouble });
 
     return {
       longitud: xDouble,

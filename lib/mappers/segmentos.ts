@@ -14,7 +14,7 @@ type SegmentoWithRelations = Tables<"segmentos"> & {
     id: number;
     codigo: string | null;
     descripcion: string | null;
-  }[];
+  };
   marisqueos?: any[];
   cuadrados?: Tables<"cuadrados">[];
 };
@@ -27,10 +27,6 @@ export function mapSegmento(segmentoDb: SegmentoWithRelations): Segmento {
   const coordFin = segmentoDb.coordenadas_fin
     ? String(segmentoDb.coordenadas_fin)
     : "";
-
-  // Debug logs para ver qué formato tienen las coordenadas
-  console.log("Coordenadas inicio (raw):", coordInicio);
-  console.log("Coordenadas fin (raw):", coordFin);
 
   // Convertir null a undefined para las profundidades
   const profInicial = segmentoDb.profundidad_inicial ?? undefined;
@@ -64,23 +60,18 @@ export function mapSegmento(segmentoDb: SegmentoWithRelations): Segmento {
     coordenadasFin = parseWKTToCoordinates(coordFin, profFinal);
   }
 
-  // Debug logs para ver el resultado del parseo
-  console.log("Coordenadas inicio (parseadas):", coordenadasInicio);
-  console.log("Coordenadas fin (parseadas):", coordenadasFin);
-
   // Si hay un sustrato en el join, lo mapeamos
-  const sustrato =
-    segmentoDb.sustrato && segmentoDb.sustrato.length > 0
-      ? {
-          id: segmentoDb.sustrato[0].id,
-          codigo: segmentoDb.sustrato[0].codigo || "",
-          descripcion: segmentoDb.sustrato[0].descripcion || "",
-        }
-      : {
-          id: segmentoDb.sustrato_id ?? 0,
-          codigo: "",
-          descripcion: "",
-        };
+  const sustrato = segmentoDb.sustrato
+    ? {
+        id: segmentoDb.sustrato.id,
+        codigo: segmentoDb.sustrato.codigo || "",
+        descripcion: segmentoDb.sustrato.descripcion || "",
+      }
+    : {
+        id: segmentoDb.sustrato_id ?? 0,
+        codigo: "",
+        descripcion: "",
+      };
 
   // Convertir null a undefined para conteo
   const conteo = segmentoDb.conteo ?? undefined;
@@ -99,11 +90,6 @@ export function mapSegmento(segmentoDb: SegmentoWithRelations): Segmento {
         profundidad: profFinal,
       }
     : { latitud: 0, longitud: 0, profundidad: profFinal };
-
-  console.log("Coordenadas finales con profundidad:", {
-    inicio: coordInicioFinal,
-    fin: coordFinFinal,
-  });
 
   return {
     id: segmentoDb.id,

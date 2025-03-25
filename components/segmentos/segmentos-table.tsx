@@ -34,7 +34,7 @@ export function SegmentosTable({
 
       for (const segmento of segmentos) {
         if (segmento.coordenadasInicio && segmento.coordenadasFin) {
-          const distancia = await calcularDistanciaHaversine(
+          const distancia = calcularDistanciaHaversine(
             segmento.coordenadasInicio.latitud,
             segmento.coordenadasInicio.longitud,
             segmento.coordenadasFin.latitud,

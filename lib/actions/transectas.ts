@@ -87,7 +87,6 @@ export async function getTransectasByCampaniaAction(
   if (error) {
     return { error: error.message };
   }
-  console.log(JSON.stringify(data, null, 2));
   revalidatePath(`/campanias/${campaniaId}`);
   return { data };
 }

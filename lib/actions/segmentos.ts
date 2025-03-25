@@ -159,8 +159,6 @@ export async function getSegmentosByTransectaAction(
 ): Promise<{ data: any[]; error: string | null }> {
   const supabase = await createClient();
 
-  console.log("Obteniendo segmentos para transecta ID:", transectaId);
-
   try {
     const { data: segmentos, error: segmentosError } = await supabase
       .from("segmentos")
@@ -172,13 +170,17 @@ export async function getSegmentosByTransectaAction(
           largo,
           profundidad_inicial,
           profundidad_final,
-          sustrato_id,
           conteo,
           est_minima,
           tiene_marisqueo,
           tiene_cuadrados,
           coordenadas_inicio,
-          coordenadas_fin
+          coordenadas_fin,
+          sustrato:sustratos (
+            id,
+            codigo,
+            descripcion
+          )
         `
       )
       .eq("transecta_id", transectaId)
@@ -196,47 +198,7 @@ export async function getSegmentosByTransectaAction(
       );
       return { data: [], error: null };
     }
-
-    console.log("Segmentos obtenidos:", segmentos.length);
-
-    // Ahora cargar los sustratos para cada segmento
-    const segmentosConSustrato = await Promise.all(
-      segmentos.map(async (segmento) => {
-        if (!segmento.sustrato_id) {
-          return {
-            ...segmento,
-            sustrato: {
-              id: 0,
-              codigo: "",
-              descripcion: "",
-            },
-            marisqueos: [],
-            cuadrados: [],
-          };
-        }
-
-        // Cargar sustrato
-        const { data: sustrato } = await supabase
-          .from("sustratos")
-          .select("id, codigo, descripcion")
-          .eq("id", segmento.sustrato_id)
-          .single();
-
-        return {
-          ...segmento,
-          sustrato: sustrato || {
-            id: segmento.sustrato_id,
-            codigo: "",
-            descripcion: "",
-          },
-          // Por ahora dejamos estos arrays vacíos, se pueden cargar bajo demanda cuando se necesiten
-          marisqueos: [],
-          cuadrados: [],
-        };
-      })
-    );
-
-    return { data: segmentosConSustrato, error: null };
+    return { data: segmentos, error: null };
   } catch (error) {
     console.error("Error inesperado:", error);
     return { data: [], error: String(error) };

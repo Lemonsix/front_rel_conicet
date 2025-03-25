@@ -49,7 +49,6 @@ export function TransectasAccordion({
     setCargando((prev) => ({ ...prev, [transectaId]: true }));
     try {
       const result = await getSegmentosByTransectaAction(transectaId);
-      console.log("Result:", result);
       if (result.error) {
         throw new Error(result.error);
       }
@@ -60,8 +59,6 @@ export function TransectasAccordion({
 
       // Mapear los segmentos usando la función importada
       const segmentosMapeados = mapSegmentos(result.data);
-
-      console.log("Segmentos mapeados:", segmentosMapeados);
 
       setSegmentosCargados((prev) => ({
         ...prev,
