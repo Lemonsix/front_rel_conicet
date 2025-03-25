@@ -98,20 +98,6 @@ export async function getCampaniaByIdAction(campaniaId: number): Promise<{
           nombre,
           apellido,
           rol
-        ),
-        segmentos(
-          id,
-          numero,
-          largo,
-          profundidad_inicial,
-          profundidad_final,
-          sustrato_id,
-          conteo,
-          est_minima,
-          coordenadas_inicio,
-          coordenadas_fin,
-          tiene_marisqueo,
-          tiene_cuadrados
         )
       )
     `

@@ -85,12 +85,20 @@ export function SegmentosTable({
                     <>
                       {segmento.coordenadasInicio.latitud !== 0 ||
                       segmento.coordenadasInicio.longitud !== 0 ? (
-                        <span className="text-xs">
-                          {formatCoordinates(
-                            segmento.coordenadasInicio.latitud,
-                            segmento.coordenadasInicio.longitud
-                          )}
-                        </span>
+                        <>
+                          <span className="text-xs">
+                            {formatCoordinates(
+                              segmento.coordenadasInicio.latitud,
+                              0
+                            )}
+                          </span>
+                          <span className="text-xs">
+                            {formatCoordinates(
+                              0,
+                              segmento.coordenadasInicio.longitud
+                            )}
+                          </span>
+                        </>
                       ) : (
                         <span className="text-xs text-muted-foreground">
                           Sin coordenadas geográficas
@@ -122,19 +130,20 @@ export function SegmentosTable({
                 <div className="flex flex-col gap-1">
                   {segmento.coordenadasFin ? (
                     <>
-                      {segmento.coordenadasFin.latitud !== 0 ||
-                      segmento.coordenadasFin.longitud !== 0 ? (
+                      <div className="flex flex-col gap-0.5">
                         <span className="text-xs">
                           {formatCoordinates(
                             segmento.coordenadasFin.latitud,
+                            0
+                          )}
+                        </span>
+                        <span className="text-xs">
+                          {formatCoordinates(
+                            0,
                             segmento.coordenadasFin.longitud
                           )}
                         </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">
-                          Sin coordenadas geográficas
-                        </span>
-                      )}
+                      </div>
                       <span className="text-xs text-muted-foreground">
                         Prof:{" "}
                         {segmento.coordenadasFin.profundidad !== undefined

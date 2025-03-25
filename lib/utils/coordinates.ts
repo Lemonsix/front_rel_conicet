@@ -98,6 +98,24 @@ export function formatCoordinates(lat: number, lon: number): string {
   try {
     console.log("Formateando coordenadas:", { lat, lon });
 
+    // Si solo tenemos una coordenada, solo formateamos esa
+    if (lat === 0) {
+      const lonSex = decimalToSexagesimal(lon, "longitud");
+      const lonSeconds = lonSex.segundos.toFixed(2);
+      return `${Math.abs(lonSex.grados)}° ${lonSex.minutos}' ${lonSeconds}" ${
+        lonSex.direccion
+      }`;
+    }
+
+    if (lon === 0) {
+      const latSex = decimalToSexagesimal(lat, "latitud");
+      const latSeconds = latSex.segundos.toFixed(2);
+      return `${Math.abs(latSex.grados)}° ${latSex.minutos}' ${latSeconds}" ${
+        latSex.direccion
+      }`;
+    }
+
+    // Si tenemos ambas coordenadas, formateamos ambas
     const latSex = decimalToSexagesimal(lat, "latitud");
     const lonSex = decimalToSexagesimal(lon, "longitud");
 
