@@ -225,11 +225,13 @@ export function EditarSegmentoForm({
       profundidad_final: segmento.coordenadasFin?.profundidad || 0,
       profundidad_inicial: segmento.coordenadasInicio?.profundidad || 0,
       conteo: segmento.conteo || 0,
-      sustratoId: segmento.sustratoId?.toString() || "",
+      sustratoId: segmento.sustrato?.id?.toString() || "",
       coordenadas_inicio: coordenadasInicio,
       coordenadas_fin: coordenadasFin,
     },
   });
+
+  console.log("segmento", segmento);
 
   useEffect(() => {
     const fetchSustratos = async () => {
@@ -398,9 +400,6 @@ export function EditarSegmentoForm({
                         ))}
                       </SelectContent>
                     </Select>
-                    <span className="text-xs text-muted-foreground">
-                      Debug: sustratoId={field.value}
-                    </span>
                     <FormMessage />
                   </FormItem>
                 )}

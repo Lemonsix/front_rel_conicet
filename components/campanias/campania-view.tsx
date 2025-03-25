@@ -13,6 +13,9 @@ import { Transecta } from "@/lib/types/transecta";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { TransectaModal } from "../transectas/transecta-modal";
+import { getSegmentosByTransectaAction } from "@/lib/actions/segmentos";
+import { mapSegmentos } from "@/lib/mappers/segmentos";
+import { Segmento } from "@/lib/types/segmento";
 
 interface CampaniaViewProps {
   campania: Campania;
@@ -30,6 +33,12 @@ export function CampaniaView({
   const [embarcaciones, setEmbarcaciones] = useState<Embarcacion[]>([]);
   const [buzos, setBuzos] = useState<Persona[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [segmentosCargados, setSegmentosCargados] = useState<
+    Record<number, Segmento[]>
+  >({});
+  const [cargandoSegmentos, setCargandoSegmentos] = useState<
+    Record<number, boolean>
+  >({});
 
   useEffect(() => {
     async function fetchData() {
@@ -62,14 +71,37 @@ export function CampaniaView({
     fetchData();
   }, []);
 
-  // Obtener todos los segmentos de las transectas abiertas
-  const segmentosVisibles = transectas
-    .filter((t) => transectasAbiertas.has(t.id))
-    .flatMap((t) => t.segmentos || [])
-    .filter(Boolean);
-
-  const handleTransectaOpen = (transectaId: number) => {
+  const handleTransectaOpen = async (transectaId: number) => {
     setTransectasAbiertas((prev) => new Set([...prev, transectaId]));
+
+    // Si ya tenemos los segmentos cargados, no los volvemos a cargar
+    if (segmentosCargados[transectaId]) {
+      return;
+    }
+
+    setCargandoSegmentos((prev) => ({ ...prev, [transectaId]: true }));
+    try {
+      const result = await getSegmentosByTransectaAction(transectaId);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      if (!result.data) {
+        throw new Error("No se encontraron datos");
+      }
+
+      const segmentosMapeados = mapSegmentos(result.data);
+
+      setSegmentosCargados((prev) => ({
+        ...prev,
+        [transectaId]: segmentosMapeados as Segmento[],
+      }));
+    } catch (error) {
+      console.error("Error cargando segmentos:", error);
+      toast.error("Error al cargar los segmentos");
+    } finally {
+      setCargandoSegmentos((prev) => ({ ...prev, [transectaId]: false }));
+    }
   };
 
   const handleTransectaClose = (transectaId: number) => {
@@ -79,6 +111,12 @@ export function CampaniaView({
       return next;
     });
   };
+
+  // Obtener todos los segmentos de las transectas abiertas
+  const segmentosVisibles = transectas
+    .filter((t) => transectasAbiertas.has(t.id))
+    .flatMap((t) => segmentosCargados[t.id] || [])
+    .filter(Boolean);
 
   const handleSegmentoCreado = async () => {
     try {
@@ -92,10 +130,7 @@ export function CampaniaView({
         throw new Error("No se encontraron datos");
       }
 
-      // Usar el mapper para convertir los datos
       const mappedTransectas = mapTransectas(result.data);
-
-      // Actualizar el estado con los datos mapeados
       setTransectas(mappedTransectas);
     } catch (error) {
       console.error("Error recargando transectas:", error);
@@ -126,6 +161,8 @@ export function CampaniaView({
               onTransectaOpen={handleTransectaOpen}
               onTransectaClose={handleTransectaClose}
               onSegmentoCreado={handleSegmentoCreado}
+              segmentosCargados={segmentosCargados}
+              cargandoSegmentos={cargandoSegmentos}
             />
           </div>
         </div>
