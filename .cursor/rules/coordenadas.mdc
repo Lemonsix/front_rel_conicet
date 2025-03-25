@@ -1,0 +1,7 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Flujo de estructura de datos de coordenadas:
+- UI (Sexagesimal) ↔ Helpers de conversión ↔ Backend lógica (Decimal) ↔ Persistencia (WKT PostGIS)

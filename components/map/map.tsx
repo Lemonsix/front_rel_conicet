@@ -49,10 +49,10 @@ export function Map({ segmentos }: MapProps) {
   const { theme } = useTheme();
 
   const segmentosPorTransecta = segmentos.reduce((acc, segmento) => {
-    if (!acc[segmento.transectId]) {
-      acc[segmento.transectId] = [];
+    if (!acc[segmento.transectaId]) {
+      acc[segmento.transectaId] = [];
     }
-    acc[segmento.transectId].push(segmento);
+    acc[segmento.transectaId].push(segmento);
     return acc;
   }, {} as Record<number, Segmento[]>);
 
@@ -79,7 +79,12 @@ export function Map({ segmentos }: MapProps) {
           const puntos: [number, number][] = [];
 
           return (
-            <div key={segmentosOrdenados[0]?.transectId}>
+            <div
+              key={
+                segmentosOrdenados[0]?.transectaId ||
+                `transecta-${Math.random()}`
+              }
+            >
               {segmentosOrdenados.map((segmento, index) => {
                 if (!segmento.coordenadasInicio || !segmento.coordenadasFin)
                   return null;

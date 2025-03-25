@@ -4,7 +4,7 @@ import { Sustrato } from "./sustrato";
 
 export interface Segmento {
   id: number;
-  transectId: number; // para mantener la relación con transectas clara
+  transectaId: number; // para mantener la relación con transectas clara
   numero: number;
   largo: number; // nullable en DB, por ende opcional
   profundidadInicial?: number;

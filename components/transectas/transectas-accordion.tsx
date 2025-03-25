@@ -7,11 +7,12 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { getSegmentosByTransectaAction } from "@/lib/actions/segmentos";
-import { mapearSegmentos } from "@/lib/utils/segmentos-mapper";
+import { mapSegmentos } from "@/lib/mappers/segmentos";
 import { Segmento } from "@/lib/types/segmento";
 import { Transecta } from "@/lib/types/transecta";
 import { useState } from "react";
 import { toast } from "sonner";
+import { NuevoSegmentoForm } from "../segmentos/nuevo-segmento-form";
 import { SegmentosTable } from "../segmentos/segmentos-table";
 
 interface TransectasAccordionProps {
@@ -58,7 +59,7 @@ export function TransectasAccordion({
       }
 
       // Mapear los segmentos usando la función importada
-      const segmentosMapeados = mapearSegmentos(result.data, transectaId);
+      const segmentosMapeados = mapSegmentos(result.data);
 
       console.log("Segmentos mapeados:", segmentosMapeados);
 
@@ -112,14 +113,25 @@ export function TransectasAccordion({
           </AccordionTrigger>
           <AccordionContent>
             {cargando[transecta.id] ? (
-              <div className="flex justify-center items-center h-32">
+              <div
+                className="flex justify-center items-center h-32"
+                key={`loading-${transecta.id}`}
+              >
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             ) : (
-              <SegmentosTable
-                segmentos={segmentosCargados[transecta.id] || []}
-                onSegmentoCreado={onSegmentoCreado}
-              />
+              <div key={`content-${transecta.id}`}>
+                <div className="flex justify-end mb-4">
+                  <NuevoSegmentoForm
+                    transectaId={transecta.id}
+                    onSuccess={onSegmentoCreado}
+                  />
+                </div>
+                <SegmentosTable
+                  segmentos={segmentosCargados[transecta.id] || []}
+                  onSegmentoCreado={onSegmentoCreado}
+                />
+              </div>
             )}
           </AccordionContent>
         </AccordionItem>

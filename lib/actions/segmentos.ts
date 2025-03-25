@@ -3,202 +3,24 @@
 import { createClient } from "@/lib/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { Segmento } from "../types/segmento";
-import { formatCoordinates } from "../utils/coordinates";
-import {
-  wktHexToGeoJSON,
-  decimalToSexagesimal,
-  calcularDistanciaHaversine,
-} from "../utils/gps";
-import { mapearSegmentos, parseGeoJSONPoint } from "../utils/segmentos-mapper";
+import { Tables, TablesInsert, TablesUpdate } from "@/lib/types/database.types";
 
-// Exportar la función para que esté disponible desde este archivo
-export { calcularDistanciaHaversine };
-
-// Definir interfaces para los tipos de datos
-export interface Coordenada {
-  latitud: number;
-  longitud: number;
-  profundidad: number;
-}
-
-export interface SustratoData {
-  id: number;
-  codigo: string;
-  descripcion: string;
-}
-
-export interface MarisqueoData {
-  id: number;
-  segmento_id: number;
-  timestamp: string;
-  tiempo: number;
-  coordenadas: string;
-  tiene_muestreo: boolean;
-  buzo_id: number;
-  n_captura: number;
-  peso_muestra: number;
-  buzo?: {
-    id: number;
-    nombre: string;
-    apellido: string;
-  };
-}
-
-export interface CuadradoData {
-  id: number;
-  segmento_id: number;
-  replica: number;
-  coordenadas_inicio: string;
-  coordenadas_fin: string;
-  profundidad_inicio: number;
-  profundidad_fin: number;
-  tiene_muestreo: boolean;
-  conteo: number;
-  tamanio: number;
-  timestamp: string;
-  coordenadasInicio?: Coordenada;
-  coordenadasFin?: Coordenada;
-}
-
-// Definimos el tipo SegmentoData para asegurar consistencia
-export type SegmentoData = {
-  id: number;
-  transectId?: number;
-  numero: number;
-  largo: number;
-  profundidad_inicial: number;
-  profundidad_final: number;
-  sustrato: SustratoData;
-  conteo: number;
-  est_minima: number;
-  tiene_marisqueo: string;
-  tiene_cuadrados: string;
-  coordenadas_inicio: string;
-  coordenadas_fin: string;
-  coordenadasInicio?: Coordenada;
-  coordenadasFin?: Coordenada;
-  marisqueos?: MarisqueoData[];
-  cuadrados?: CuadradoData[];
-  profundidadInicial?: number;
-  profundidadFinal?: number;
-  estMinima?: number;
-  tieneMarisqueo?: boolean;
-  tieneCuadrados?: boolean;
-};
-
-// Función para parsear GeoJSON y convertirlo a coordenadas con formato amigable
-function parseGeoJSONToCoordinates(
-  geoJSONString: string | null,
-  profundidad: number = 0
-): Coordenada | null {
-  if (!geoJSONString) return null;
-
-  try {
-    const geoJSON = JSON.parse(geoJSONString);
-
-    if (
-      geoJSON &&
-      geoJSON.type === "Point" &&
-      Array.isArray(geoJSON.coordinates)
-    ) {
-      const [longitud, latitud] = geoJSON.coordinates;
-
-      console.log("Coordenadas parseadas:", { longitud, latitud, profundidad });
-
-      // Si ambas coordenadas son 0, posiblemente son coordenadas no establecidas
-      if (latitud === 0 && longitud === 0) {
-        console.log(
-          "Coordenadas en 0,0 detectadas, posiblemente no configuradas"
-        );
-      }
-
-      // Convertir a formato sexagesimal para UI
-      const latSexagesimal = decimalToSexagesimal(latitud, "latitud");
-      const lonSexagesimal = decimalToSexagesimal(longitud, "longitud");
-
-      // Formato completo para mostrar en UI
-      const displayFormat = `${Math.abs(latSexagesimal.grados)}° ${
-        latSexagesimal.minutos
-      }' ${latSexagesimal.segundos}" ${latSexagesimal.direccion}, ${Math.abs(
-        lonSexagesimal.grados
-      )}° ${lonSexagesimal.minutos}' ${lonSexagesimal.segundos}" ${
-        lonSexagesimal.direccion
-      }`;
-
-      // Devolver objeto con todos los formatos
-      return {
-        latitud,
-        longitud,
-        profundidad,
-        lat: latitud, // Para compatibilidad
-        lng: longitud, // Para compatibilidad
-        depth: profundidad, // Para compatibilidad
-        sexagesimal: {
-          latitud: {
-            grados: Math.abs(latSexagesimal.grados),
-            minutos: latSexagesimal.minutos,
-            segundos: latSexagesimal.segundos,
-            direccion: latSexagesimal.direccion,
-          },
-          longitud: {
-            grados: Math.abs(lonSexagesimal.grados),
-            minutos: lonSexagesimal.minutos,
-            segundos: lonSexagesimal.segundos,
-            direccion: lonSexagesimal.direccion,
-          },
-        },
-        display: displayFormat,
-      } as Coordenada & {
-        lat: number;
-        lng: number;
-        depth: number;
-        sexagesimal: {
-          latitud: {
-            grados: number;
-            minutos: number;
-            segundos: number;
-            direccion: string;
-          };
-          longitud: {
-            grados: number;
-            minutos: number;
-            segundos: number;
-            direccion: string;
-          };
-        };
-        display: string;
-      };
-    }
-
-    return null;
-  } catch (error) {
-    console.error("Error parseando GeoJSON:", error, geoJSONString);
-    return null;
-  }
-}
-
-export async function createSegmentoAction(formData: {
-  transecta_id: number;
-  numero: number;
-  coordenadas_inicio: string;
-  coordenadas_fin: string;
-  profundidad_final: number;
-  profundidad_inicial?: number;
-  sustrato_id: number;
-  conteo: number;
-  largo: number;
-  est_minima: number;
-}) {
+export async function createSegmentoAction(
+  formData: Omit<
+    TablesInsert<"segmentos">,
+    "tiene_marisqueo" | "tiene_cuadrados"
+  >
+): Promise<{ data?: Tables<"segmentos">; error?: string }> {
   const supabase = await createClient();
+
+  const segmentoData: TablesInsert<"segmentos"> = {
+    ...formData,
+    est_minima: formData.est_minima ?? 0, // Si no se especifica, usamos 0
+  };
 
   const { data, error } = await supabase
     .from("segmentos")
-    .insert([
-      {
-        ...formData,
-        est_minima: 0, // Por ahora lo dejamos en 0
-      },
-    ])
+    .insert([segmentoData])
     .select()
     .single();
 
@@ -210,25 +32,22 @@ export async function createSegmentoAction(formData: {
   return { data };
 }
 
-export async function getSustratosAction() {
+export async function getSustratosAction(): Promise<{
+  data: Tables<"sustratos">[];
+  error: string | null;
+}> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("sustratos")
-    .select(
-      `
-      id,
-      codigo,
-      descripcion
-    `
-    )
+    .select()
     .order("codigo");
 
   if (error) {
-    return { error: error.message };
+    return { data: [], error: error.message };
   }
 
-  return { data };
+  return { data: data || [], error: null };
 }
 
 export async function checkSegmentoNumberAvailabilityAction(
@@ -286,10 +105,10 @@ export async function getUltimoSegmentoAction(
     return { data: null, error: null };
   }
 
-  // Mapear los datos al formato correcto
+  // Mapear los datos de Tables<'segmentos'> a Segmento
   const segmento: Segmento = {
     id: data.id,
-    transectId: data.transecta_id,
+    transectaId: data.transecta_id,
     numero: data.numero,
     coordenadasInicio: data.coordenadas_inicio,
     coordenadasFin: data.coordenadas_fin,
@@ -308,19 +127,9 @@ export async function getUltimoSegmentoAction(
   return { data: segmento, error: null };
 }
 
-export async function updateSegmentoAction(data: {
-  id: number;
-  transecta_id: number;
-  numero: number;
-  coordenadas_inicio: string;
-  coordenadas_fin: string;
-  profundidad_inicial: number;
-  profundidad_final: number;
-  distancia: number;
-  sustrato_id: number;
-  conteo?: number;
-  est_minima?: number;
-}) {
+export async function updateSegmentoAction(
+  data: TablesUpdate<"segmentos"> & { id: number }
+): Promise<{ error?: string }> {
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -331,7 +140,7 @@ export async function updateSegmentoAction(data: {
       coordenadas_fin: data.coordenadas_fin,
       profundidad_inicial: data.profundidad_inicial,
       profundidad_final: data.profundidad_final,
-      distancia: data.distancia,
+      largo: data.largo,
       sustrato_id: data.sustrato_id,
       conteo: data.conteo,
       est_minima: data.est_minima,
@@ -339,36 +148,38 @@ export async function updateSegmentoAction(data: {
     .eq("id", data.id);
 
   if (error) {
-    throw error;
+    return { error: error.message };
   }
+
+  return {};
 }
 
 export async function getSegmentosByTransectaAction(
   transectaId: number
-): Promise<{ data: SegmentoData[]; error: string | null }> {
+): Promise<{ data: any[]; error: string | null }> {
   const supabase = await createClient();
 
   console.log("Obteniendo segmentos para transecta ID:", transectaId);
 
   try {
-    // Obtener información básica de los segmentos
     const { data: segmentos, error: segmentosError } = await supabase
       .from("segmentos")
       .select(
         `
-        id,
-        numero,
-        largo,
-        profundidad_inicial,
-        profundidad_final,
-        sustrato:sustratos(id, codigo, descripcion),
-        conteo,
-        est_minima,
-        tiene_marisqueo,
-        tiene_cuadrados,
-        coordenadas_inicio,
-        coordenadas_fin
-      `
+          id,
+          transecta_id,
+          numero,
+          largo,
+          profundidad_inicial,
+          profundidad_final,
+          sustrato_id,
+          conteo,
+          est_minima,
+          tiene_marisqueo,
+          tiene_cuadrados,
+          coordenadas_inicio,
+          coordenadas_fin
+        `
       )
       .eq("transecta_id", transectaId)
       .order("numero");
@@ -388,278 +199,46 @@ export async function getSegmentosByTransectaAction(
 
     console.log("Segmentos obtenidos:", segmentos.length);
 
-    // Log para verificar formato de datos de sustrato
-    if (segmentos.length > 0) {
-      console.log("Formato de datos de sustrato:", {
-        sustrato: segmentos[0].sustrato,
-        esArray: Array.isArray(segmentos[0].sustrato),
-        tipo: typeof segmentos[0].sustrato,
-      });
-    }
-
-    // Procesar para convertir a GeoJSON
-    const segmentosConGeoJSON = segmentos.map((segmento) => {
-      // Obtener GeoJSON
-      const geoJSONInicio = segmento.coordenadas_inicio
-        ? typeof segmento.coordenadas_inicio === "string" &&
-          segmento.coordenadas_inicio.includes('"type":"Point"')
-          ? segmento.coordenadas_inicio // Ya está en formato GeoJSON
-          : wktHexToGeoJSON(segmento.coordenadas_inicio as string)
-        : null;
-
-      const geoJSONFin = segmento.coordenadas_fin
-        ? typeof segmento.coordenadas_fin === "string" &&
-          segmento.coordenadas_fin.includes('"type":"Point"')
-          ? segmento.coordenadas_fin // Ya está en formato GeoJSON
-          : wktHexToGeoJSON(segmento.coordenadas_fin as string)
-        : null;
-
-      // Convertir a coordenadas amigables
-      const coordenadasInicio = parseGeoJSONToCoordinates(
-        geoJSONInicio,
-        segmento.profundidad_inicial
-      );
-
-      const coordenadasFin = parseGeoJSONToCoordinates(
-        geoJSONFin,
-        segmento.profundidad_final
-      );
-
-      // Asegurarse de que el sustrato tiene el formato correcto
-      let sustratoFormateado;
-      if (Array.isArray(segmento.sustrato) && segmento.sustrato.length > 0) {
-        sustratoFormateado = segmento.sustrato[0];
-      } else if (
-        segmento.sustrato &&
-        typeof segmento.sustrato === "object" &&
-        !Array.isArray(segmento.sustrato)
-      ) {
-        sustratoFormateado = segmento.sustrato;
-      } else {
-        sustratoFormateado = { id: 0, codigo: "", descripcion: "" };
-      }
-
-      console.log(`Sustrato para segmento ${segmento.id}:`, {
-        originalSustrato: segmento.sustrato,
-        sustratoFormateado,
-      });
-
-      return {
-        ...segmento,
-        sustrato: sustratoFormateado,
-        coordenadas_inicio: geoJSONInicio,
-        coordenadas_fin: geoJSONFin,
-        coordenadasInicio: coordenadasInicio,
-        coordenadasFin: coordenadasFin,
-      };
-    });
-
-    // Obtener datos relacionados para cada segmento
-    const segmentosCompletos = await Promise.all(
-      segmentosConGeoJSON.map(async (segmento) => {
-        // Obtener marisqueos
-        const { data: marisqueos, error: marisqueosError } = await supabase
-          .from("marisqueos")
-          .select(
-            `
-            id, 
-            segmento_id, 
-            timestamp, 
-            tiempo,
-            coordenadas,
-            tiene_muestreo,
-            buzo_id,
-            n_captura,
-            peso_muestra,
-            buzo:personas(id, nombre, apellido)
-          `
-          )
-          .eq("segmento_id", segmento.id);
-
-        if (marisqueosError) {
-          console.error("Error al obtener marisqueos:", marisqueosError);
+    // Ahora cargar los sustratos para cada segmento
+    const segmentosConSustrato = await Promise.all(
+      segmentos.map(async (segmento) => {
+        if (!segmento.sustrato_id) {
+          return {
+            ...segmento,
+            sustrato: {
+              id: 0,
+              codigo: "",
+              descripcion: "",
+            },
+            marisqueos: [],
+            cuadrados: [],
+          };
         }
 
-        // Obtener cuadrados
-        const { data: cuadrados, error: cuadradosError } = await supabase
-          .from("cuadrados")
-          .select(
-            `
-            id,
-            segmento_id,
-            replica,
-            coordenadas_inicio,
-            coordenadas_fin,
-            profundidad_inicio,
-            profundidad_fin,
-            tiene_muestreo,
-            conteo,
-            tamanio,
-            timestamp
-          `
-          )
-          .eq("segmento_id", segmento.id);
+        // Cargar sustrato
+        const { data: sustrato } = await supabase
+          .from("sustratos")
+          .select("id, codigo, descripcion")
+          .eq("id", segmento.sustrato_id)
+          .single();
 
-        if (cuadradosError) {
-          console.error("Error al obtener cuadrados:", cuadradosError);
-        }
-
-        // Convertir coordenadas de marisqueos y cuadrados a formato amigable
-        const marisqueosConGeoJSON =
-          marisqueos?.map((m) => {
-            const geoJSON = m.coordenadas
-              ? typeof m.coordenadas === "string" &&
-                m.coordenadas.includes('"type":"Point"')
-                ? m.coordenadas
-                : wktHexToGeoJSON(m.coordenadas as string)
-              : null;
-
-            const coordenadasObj = parseGeoJSONToCoordinates(geoJSON);
-
-            return {
-              ...m,
-              coordenadas: geoJSON,
-              coordenadasObj,
-            };
-          }) || [];
-
-        const cuadradosConGeoJSON =
-          cuadrados?.map((c) => {
-            const geoJSONInicio = c.coordenadas_inicio
-              ? typeof c.coordenadas_inicio === "string" &&
-                c.coordenadas_inicio.includes('"type":"Point"')
-                ? c.coordenadas_inicio
-                : wktHexToGeoJSON(c.coordenadas_inicio as string)
-              : null;
-
-            const geoJSONFin = c.coordenadas_fin
-              ? typeof c.coordenadas_fin === "string" &&
-                c.coordenadas_fin.includes('"type":"Point"')
-                ? c.coordenadas_fin
-                : wktHexToGeoJSON(c.coordenadas_fin as string)
-              : null;
-
-            const coordenadasInicio = parseGeoJSONToCoordinates(
-              geoJSONInicio,
-              c.profundidad_inicio
-            );
-            const coordenadasFin = parseGeoJSONToCoordinates(
-              geoJSONFin,
-              c.profundidad_fin
-            );
-
-            return {
-              ...c,
-              coordenadasInicio,
-              coordenadasFin,
-              // Mantener formato compatible
-              coordenadas_inicio: geoJSONInicio,
-              coordenadas_fin: geoJSONFin,
-            };
-          }) || [];
-
-        // Preparar el resultado final transformando al formato esperado por el cliente
-        const resultado = {
-          id: segmento.id,
-          transectId: transectaId,
-          numero: segmento.numero,
-          largo: segmento.largo,
-          profundidadInicial: segmento.profundidad_inicial,
-          profundidadFinal: segmento.profundidad_final,
-          conteo: segmento.conteo,
-          estMinima: segmento.est_minima,
-          tieneMarisqueo: segmento.tiene_marisqueo === "SI",
-          tieneCuadrados: segmento.tiene_cuadrados === "SI",
-          sustrato: segmento.sustrato,
-          coordenadasInicio: segmento.coordenadasInicio
-            ? {
-                latitud: segmento.coordenadasInicio.latitud,
-                longitud: segmento.coordenadasInicio.longitud,
-                profundidad:
-                  segmento.profundidad_inicial ||
-                  segmento.coordenadasInicio.profundidad ||
-                  0,
-              }
-            : {
-                latitud: 0,
-                longitud: 0,
-                profundidad: segmento.profundidad_inicial || 0,
-              },
-          coordenadasFin: segmento.coordenadasFin
-            ? {
-                latitud: segmento.coordenadasFin.latitud,
-                longitud: segmento.coordenadasFin.longitud,
-                profundidad:
-                  segmento.profundidad_final ||
-                  segmento.coordenadasFin.profundidad ||
-                  0,
-              }
-            : {
-                latitud: 0,
-                longitud: 0,
-                profundidad: segmento.profundidad_final || 0,
-              },
-          distancia: segmento.largo, // Asegurar que distancia esté establecida correctamente
-          marisqueos: marisqueosConGeoJSON,
-          cuadrados: cuadradosConGeoJSON,
-          // Agregar campos requeridos por SegmentoData
-          profundidad_inicial: segmento.profundidad_inicial,
-          profundidad_final: segmento.profundidad_final,
-          est_minima: segmento.est_minima,
-          tiene_marisqueo: segmento.tiene_marisqueo,
-          tiene_cuadrados: segmento.tiene_cuadrados,
-          coordenadas_inicio: segmento.coordenadas_inicio,
-          coordenadas_fin: segmento.coordenadas_fin,
+        return {
+          ...segmento,
+          sustrato: sustrato || {
+            id: segmento.sustrato_id,
+            codigo: "",
+            descripcion: "",
+          },
+          // Por ahora dejamos estos arrays vacíos, se pueden cargar bajo demanda cuando se necesiten
+          marisqueos: [],
+          cuadrados: [],
         };
-        console.log("Resultado segmento completo:", {
-          id: resultado.id,
-          coordenadasInicio: resultado.coordenadasInicio,
-          coordenadasFin: resultado.coordenadasFin,
-        });
-        return resultado;
       })
     );
-    // Log para debug
-    if (segmentosCompletos.length > 0) {
-      console.log("Ejemplo de respuesta (primer segmento):", {
-        id: segmentosCompletos[0].id,
-        coordenadasInicio: segmentosCompletos[0].coordenadasInicio
-          ? {
-              formatted: formatCoordinates(
-                segmentosCompletos[0].coordenadasInicio.latitud,
-                segmentosCompletos[0].coordenadasInicio.longitud
-              ),
-              rawLatitud: segmentosCompletos[0].coordenadasInicio.latitud,
-              rawLongitud: segmentosCompletos[0].coordenadasInicio.longitud,
-              profundidad: segmentosCompletos[0].coordenadasInicio.profundidad,
-            }
-          : "No disponible",
-        coordenadasFin: segmentosCompletos[0].coordenadasFin
-          ? {
-              formatted: formatCoordinates(
-                segmentosCompletos[0].coordenadasFin.latitud,
-                segmentosCompletos[0].coordenadasFin.longitud
-              ),
-              rawLatitud: segmentosCompletos[0].coordenadasFin.latitud,
-              rawLongitud: segmentosCompletos[0].coordenadasFin.longitud,
-              profundidad: segmentosCompletos[0].coordenadasFin.profundidad,
-            }
-          : "No disponible",
-        marisqueos_count: segmentosCompletos[0].marisqueos?.length || 0,
-        cuadrados_count: segmentosCompletos[0].cuadrados?.length || 0,
-      });
-    }
-    console.log("Segmentos completos:", segmentosCompletos);
 
-    // Convertimos los segmentos al formato esperado usando nuestra función de mapeo
-    const segmentosMapeados = mapearSegmentos(segmentosCompletos, transectaId);
-
-    return { data: segmentosMapeados, error: null };
+    return { data: segmentosConSustrato, error: null };
   } catch (error) {
-    console.error("Error general en getSegmentosByTransectaAction:", error);
-    return {
-      data: [],
-      error: "Error al obtener segmentos: " + (error as Error).message,
-    };
+    console.error("Error inesperado:", error);
+    return { data: [], error: String(error) };
   }
 }

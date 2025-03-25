@@ -2,11 +2,14 @@
 
 import { createClient } from "@/lib/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { Tables, TablesInsert, TablesUpdate } from "@/lib/types/database.types";
 
-export async function createEmbarcacionAction(formData: {
-  nombre: string;
-  matricula: string;
-}) {
+export async function createEmbarcacionAction(
+  formData: TablesInsert<"embarcaciones">
+): Promise<{
+  data?: Tables<"embarcaciones">;
+  error?: string;
+}> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -23,7 +26,10 @@ export async function createEmbarcacionAction(formData: {
   return { data };
 }
 
-export async function getEmbarcacionesAction() {
+export async function getEmbarcacionesAction(): Promise<{
+  data?: Tables<"embarcaciones">[];
+  error?: string;
+}> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -32,7 +38,8 @@ export async function getEmbarcacionesAction() {
       `
       id,
       nombre,
-      matricula
+      matricula,
+      descripcion
     `
     )
     .order("id", { ascending: true });
@@ -46,11 +53,11 @@ export async function getEmbarcacionesAction() {
 
 export async function updateEmbarcacionAction(
   id: number,
-  formData: {
-    nombre: string;
-    matricula: string;
-  }
-) {
+  formData: TablesUpdate<"embarcaciones">
+): Promise<{
+  data?: Tables<"embarcaciones">;
+  error?: string;
+}> {
   const supabase = await createClient();
 
   const { data, error } = await supabase

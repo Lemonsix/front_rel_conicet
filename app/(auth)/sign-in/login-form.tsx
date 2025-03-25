@@ -57,26 +57,6 @@ export function LoginForm({
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const result = await signInWithGoogle();
-      if (result.error) {
-        setError(result.error);
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Error al iniciar sesión con Google"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -126,15 +106,6 @@ export function LoginForm({
               {error && <div className="text-sm text-red-500">{error}</div>}
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Iniciando sesión..." : "Iniciar sesión"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleGoogleLogin}
-                disabled={loading}
-              >
-                {loading ? "Conectando..." : "Iniciar sesión con Google"}
               </Button>
             </div>
           </form>

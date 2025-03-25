@@ -13,7 +13,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/utils/supabase/server";
 
 interface SetPasswordFormProps extends React.ComponentPropsWithoutRef<"div"> {
   token: string;
@@ -43,23 +42,26 @@ export function SetPasswordForm({
     }
 
     try {
-      const supabase = await createClient();
       const refresh_token = searchParams.get("refresh_token");
 
-      // Establecemos la sesión con el token de acceso y refresh token
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: token,
-        refresh_token: refresh_token || "",
+      // Llamar a nuestra API route en lugar de Supabase directamente
+      const response = await fetch("/api/auth/update-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          password,
+          token,
+          refresh_token,
+        }),
       });
 
-      if (sessionError) throw sessionError;
+      const data = await response.json();
 
-      // Actualizamos la contraseña
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: password,
-      });
-
-      if (updateError) throw updateError;
+      if (!response.ok) {
+        throw new Error(data.error || "Error al actualizar la contraseña");
+      }
 
       // Redirigimos al usuario al login
       router.push("/sign-in?message=password-updated");

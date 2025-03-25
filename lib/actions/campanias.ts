@@ -2,13 +2,14 @@
 
 import { createClient } from "@/lib/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { Tables, TablesInsert, TablesUpdate } from "@/lib/types/database.types";
 
-export async function createCampaniaAction(formData: {
-  nombre: string;
-  responsable_id: string;
-  observaciones?: string;
-  inicio: string;
-}) {
+export async function createCampaniaAction(
+  formData: TablesInsert<"campanias">
+): Promise<{
+  data?: Tables<"campanias">;
+  error?: string;
+}> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -25,7 +26,10 @@ export async function createCampaniaAction(formData: {
   return { data };
 }
 
-export async function getCampaniasAction() {
+export async function getCampaniasAction(): Promise<{
+  data?: any[]; // Usamos any porque el resultado tiene formato diferente por los joins
+  error?: string;
+}> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -50,11 +54,13 @@ export async function getCampaniasAction() {
   return { data };
 }
 
-export async function getCampaniaByIdAction(campaniaId: string) {
+export async function getCampaniaByIdAction(campaniaId: number): Promise<{
+  data?: any; // Usamos any porque el resultado tiene un formato complejo con muchos joins
+  error?: string;
+}> {
   const supabase = await createClient();
 
-  // Obtener datos de la campaña
-  const { data: campaniaData, error: campaniaError } = await supabase
+  const { data, error } = await supabase
     .from("campanias")
     .select(
       `
@@ -69,92 +75,53 @@ export async function getCampaniaByIdAction(campaniaId: string) {
         nombre,
         apellido,
         rol
+      ),
+      transectas(
+        id,
+        nombre,
+        observaciones,
+        fecha,
+        hora_inicio,
+        hora_fin,
+        profundidad_inicial,
+        orientacion,
+        embarcacion_id,
+        buzo_id,
+        campania_id,
+        embarcacion:embarcaciones!transectas_fk_embarcaciones(
+          id,
+          nombre,
+          matricula
+        ),
+        buzo:personas!transectas_fk_buzo_personas(
+          id,
+          nombre,
+          apellido,
+          rol
+        ),
+        segmentos(
+          id,
+          numero,
+          largo,
+          profundidad_inicial,
+          profundidad_final,
+          sustrato_id,
+          conteo,
+          est_minima,
+          coordenadas_inicio,
+          coordenadas_fin,
+          tiene_marisqueo,
+          tiene_cuadrados
+        )
       )
     `
     )
     .eq("id", campaniaId)
     .single();
 
-  if (campaniaError) {
-    return { error: campaniaError.message };
+  if (error) {
+    return { error: error.message };
   }
 
-  // Obtener transectas de la campaña
-  const { data: transectasData, error: transectasError } = await supabase
-    .from("transectas")
-    .select(
-      `
-      id,
-      nombre,
-      observaciones,
-      fecha,
-      hora_inicio,
-      hora_fin,
-      profundidad_inicial,
-      orientacion,
-      embarcacion_id,
-      buzo_id,
-      campania_id,
-      embarcacion:embarcaciones!transectas_fk_embarcaciones(
-        id,
-        nombre,
-        matricula
-      ),
-      buzo:personas!transectas_fk_buzo_personas(
-        id,
-        nombre,
-        apellido,
-        rol
-      ),
-      segmentos(
-        id,
-        numero,
-        largo,
-        profundidad_inicial,
-        profundidad_final,
-        sustrato:sustratos!segmentos_fk_sustratos(
-          id,
-          codigo,
-          descripcion
-        ),
-        conteo,
-        est_minima,
-        coordenadas_inicio,
-        coordenadas_fin,
-        tiene_marisqueo,
-        tiene_cuadrados,
-        marisqueos!marisqueos_fk_segmentos(
-          id,
-          segmento_id,
-          timestamp,
-          tiempo,
-          coordenadas,
-          tiene_muestreo,
-          buzo_id,
-          n_captura,
-          peso_muestra
-        ),
-        cuadrados(
-          id,
-          segmento_id,
-          replica,
-          coordenadas_inicio,
-          coordenadas_fin,
-          profundidad_inicio,
-          profundidad_fin,
-          tiene_muestreo,
-          conteo,
-          tamanio,
-          timestamp
-        )
-      )
-    `
-    )
-    .eq("campania_id", campaniaId);
-
-  if (transectasError) {
-    return { error: transectasError.message };
-  }
-
-  return { data: { campania: campaniaData, transectas: transectasData } };
+  return { data: { campania: data, transectas: data.transectas } };
 }

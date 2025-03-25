@@ -2,8 +2,14 @@
 
 import { createClient } from "@/lib/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { Tables, TablesInsert } from "@/lib/types/database.types";
 
-export async function getTransectasByCampaniaAction(campaniaId: number) {
+export async function getTransectasByCampaniaAction(
+  campaniaId: number
+): Promise<{
+  data?: any[]; // Usamos any porque el resultado tiene formato complejo por los joins anidados
+  error?: string;
+}> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -86,17 +92,12 @@ export async function getTransectasByCampaniaAction(campaniaId: number) {
   return { data };
 }
 
-export async function createTransectaAction(formData: {
-  nombre: string;
-  observaciones?: string;
-  fecha: string;
-  hora_inicio: string;
-  hora_fin: string;
-  orientacion: string;
-  embarcacion_id?: number;
-  buzo_id?: number;
-  campania_id: number;
-}) {
+export async function createTransectaAction(
+  formData: TablesInsert<"transectas">
+): Promise<{
+  data?: Tables<"transectas">;
+  error?: string;
+}> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -113,7 +114,10 @@ export async function createTransectaAction(formData: {
   return { data };
 }
 
-export async function getNombresTransectasAction() {
+export async function getNombresTransectasAction(): Promise<{
+  data?: string[];
+  error?: string;
+}> {
   const supabase = await createClient();
 
   const { data, error } = await supabase

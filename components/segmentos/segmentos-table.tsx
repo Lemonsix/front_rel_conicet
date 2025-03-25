@@ -11,8 +11,10 @@ import { Segmento } from "@/lib/types/segmento";
 import { ArrowDownFromLine, Pencil } from "lucide-react";
 import { useState, useEffect } from "react";
 import { EditarSegmentoForm } from "./editar-segmento-form";
-import { parseCoordinates } from "@/lib/utils/coordinates";
-import { calcularDistanciaHaversine } from "@/lib/actions/segmentos";
+import {
+  calcularDistanciaHaversine,
+  formatCoordinates,
+} from "@/lib/utils/coordinates";
 
 interface SegmentosTableProps {
   segmentos: Segmento[];
@@ -79,59 +81,79 @@ export function SegmentosTable({
               <TableCell>{segmento.numero}</TableCell>
               <TableCell>
                 <div className="flex flex-col gap-1">
-                  {segmento.coordenadasInicio &&
-                  (segmento.coordenadasInicio.latitud !== 0 ||
-                    segmento.coordenadasInicio.longitud !== 0) ? (
+                  {segmento.coordenadasInicio ? (
                     <>
-                      <span className="text-xs">
-                        {parseCoordinates(
-                          segmento.coordenadasInicio.latitud,
-                          "lat"
-                        )}
-                      </span>
-                      <span className="text-xs">
-                        {parseCoordinates(
-                          segmento.coordenadasInicio.longitud,
-                          "lon"
-                        )}
-                      </span>
+                      {segmento.coordenadasInicio.latitud !== 0 ||
+                      segmento.coordenadasInicio.longitud !== 0 ? (
+                        <span className="text-xs">
+                          {formatCoordinates(
+                            segmento.coordenadasInicio.latitud,
+                            segmento.coordenadasInicio.longitud
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          Sin coordenadas geográficas
+                        </span>
+                      )}
                       <span className="text-xs text-muted-foreground">
-                        Prof: {segmento.coordenadasInicio.profundidad}m
+                        Prof:{" "}
+                        {segmento.coordenadasInicio.profundidad !== undefined
+                          ? segmento.coordenadasInicio.profundidad
+                          : segmento.profundidadInicial || 0}
+                        m
                       </span>
                     </>
                   ) : (
-                    <span className="text-sm text-muted-foreground">
-                      Sin coordenadas
-                    </span>
+                    <>
+                      <span className="text-sm text-muted-foreground">
+                        Sin coordenadas geográficas
+                      </span>
+                      {segmento.profundidadInicial !== undefined && (
+                        <span className="text-xs text-muted-foreground">
+                          Prof: {segmento.profundidadInicial}m
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
               </TableCell>
               <TableCell>
                 <div className="flex flex-col gap-1">
-                  {segmento.coordenadasFin &&
-                  (segmento.coordenadasFin.latitud !== 0 ||
-                    segmento.coordenadasFin.longitud !== 0) ? (
+                  {segmento.coordenadasFin ? (
                     <>
-                      <span className="text-xs">
-                        {parseCoordinates(
-                          segmento.coordenadasFin.latitud,
-                          "lat"
-                        )}
-                      </span>
-                      <span className="text-xs">
-                        {parseCoordinates(
-                          segmento.coordenadasFin.longitud,
-                          "lon"
-                        )}
-                      </span>
+                      {segmento.coordenadasFin.latitud !== 0 ||
+                      segmento.coordenadasFin.longitud !== 0 ? (
+                        <span className="text-xs">
+                          {formatCoordinates(
+                            segmento.coordenadasFin.latitud,
+                            segmento.coordenadasFin.longitud
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          Sin coordenadas geográficas
+                        </span>
+                      )}
                       <span className="text-xs text-muted-foreground">
-                        Prof: {segmento.coordenadasFin.profundidad}m
+                        Prof:{" "}
+                        {segmento.coordenadasFin.profundidad !== undefined
+                          ? segmento.coordenadasFin.profundidad
+                          : segmento.profundidadFinal || 0}
+                        m
                       </span>
                     </>
                   ) : (
-                    <span className="text-sm text-muted-foreground">
-                      Sin coordenadas
-                    </span>
+                    <>
+                      <span className="text-sm text-muted-foreground">
+                        Sin coordenadas geográficas
+                      </span>
+                      {segmento.profundidadFinal !== undefined && (
+                        <span className="text-xs text-muted-foreground">
+                          Prof: {segmento.profundidadFinal}m
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
               </TableCell>

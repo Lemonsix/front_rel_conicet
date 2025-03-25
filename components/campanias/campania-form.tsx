@@ -84,7 +84,7 @@ export function CampaniaForm({ onSuccess }: CampaniaFormProps) {
     try {
       const result = await createCampaniaAction({
         nombre: values.nombre,
-        responsable_id: values.responsableId,
+        responsable_id: parseInt(values.responsableId, 10),
         observaciones: values.observaciones,
         inicio: values.fechaInicio,
       });

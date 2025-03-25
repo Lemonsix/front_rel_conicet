@@ -1,127 +1,307 @@
-import { decimalToSexagesimal } from "./gps";
-
-/**
- * Convierte formato sexagesimal (grados, minutos, segundos) a grados decimales
- * Acepta formatos como: "41° 24' 12.2"" o "-41° 24' 12.2""
- */
-export function sexagesimalToDecimal(sexagesimal: string): number {
-  const match = sexagesimal.match(/(-?)(\d+)°\s*(\d+)'\s*(\d+\.?\d*)"/);
-  if (!match) throw new Error("Formato inválido. Use: DD° MM' SS.SS\"");
-
-  const [, sign, degrees, minutes, seconds] = match;
-  const decimal =
-    parseInt(degrees) + parseInt(minutes) / 60 + parseFloat(seconds) / 3600;
-
-  return sign === "-" ? -decimal : decimal;
+// types.ts
+export interface SexagesimalCoordinate {
+  grados: number;
+  minutos: number;
+  segundos: number;
+  direccion: "N" | "S" | "E" | "W";
 }
 
-/**
- * Convierte coordenadas decimales a formato WKT de PostGIS
- */
-export function decimalToWKT(lon: number, lat: number): string {
-  return `SRID=4326;POINT(${lon} ${lat})`;
+export interface SexagesimalPosition {
+  latitud: SexagesimalCoordinate;
+  longitud: SexagesimalCoordinate;
 }
 
-/**
- * Formatea coordenadas para mostrar en la UI
- */
+export interface DecimalPosition {
+  latitud: number;
+  longitud: number;
+}
+
+export interface Coordenada {
+  latitud: number;
+  longitud: number;
+  profundidad?: number;
+}
+
+// conversions.ts
+
+export const sexagesimalToDecimal = (coord: SexagesimalCoordinate): number => {
+  const sign = coord.direccion === "S" || coord.direccion === "W" ? -1 : 1;
+  return sign * (coord.grados + coord.minutos / 60 + coord.segundos / 3600);
+};
+
+export const decimalToSexagesimal = (
+  decimal: number,
+  tipo: "latitud" | "longitud"
+): SexagesimalCoordinate => {
+  const absolute = Math.abs(decimal);
+  const grados = Math.floor(absolute);
+  const minutesNotTruncated = (absolute - grados) * 60;
+  const minutos = Math.floor(minutesNotTruncated);
+  const segundos = Math.round((minutesNotTruncated - minutos) * 60 * 100) / 100;
+
+  const direccion =
+    tipo === "latitud" ? (decimal >= 0 ? "N" : "S") : decimal >= 0 ? "E" : "W";
+
+  return { grados, minutos, segundos, direccion };
+};
+
+export const positionSexagesimalToDecimal = (
+  pos: SexagesimalPosition
+): DecimalPosition => ({
+  latitud: sexagesimalToDecimal(pos.latitud),
+  longitud: sexagesimalToDecimal(pos.longitud),
+});
+
+export const positionDecimalToSexagesimal = (
+  pos: DecimalPosition
+): SexagesimalPosition => ({
+  latitud: decimalToSexagesimal(pos.latitud, "latitud"),
+  longitud: decimalToSexagesimal(pos.longitud, "longitud"),
+});
+
+export const decimalPositionToWKT = (pos: DecimalPosition): string =>
+  `SRID=4326;POINT(${pos.longitud} ${pos.latitud})`;
+
+export const parseWKTToDecimalPosition = (
+  wkt: string
+): DecimalPosition | null => {
+  const match = wkt.match(/POINT\((-?\d+\.?\d*) (-?\d+\.?\d*)\)/);
+  if (!match) return null;
+
+  return {
+    longitud: parseFloat(match[1]),
+    latitud: parseFloat(match[2]),
+  };
+};
+
+export function calcularDistanciaHaversine(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371e3;
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export function formatCoordinates(lat: number, lon: number): string {
-  if (lat === 0 && lon === 0) {
-    return "Sin coordenadas";
-  }
+  if (lat === 0 && lon === 0) return "Sin coordenadas";
 
-  const latSex = decimalToSexagesimal(lat, "latitud");
-  const lonSex = decimalToSexagesimal(lon, "longitud");
-
-  // Usamos las propiedades del objeto para formatear
-  return `${Math.abs(latSex.grados)}° ${latSex.minutos}' ${latSex.segundos}" ${
-    latSex.direccion
-  }, ${Math.abs(lonSex.grados)}° ${lonSex.minutos}' ${lonSex.segundos}" ${
-    lonSex.direccion
-  }`;
-}
-
-/**
- * Parsea coordenadas desde formato WKT de PostGIS
- */
-export function parseWKTPoint(
-  wkt: string,
-  profundidad: number = 0
-): { latitud: number; longitud: number; profundidad: number } | undefined {
   try {
-    if (!wkt) {
-      console.warn("WKT vacío recibido");
-      return undefined;
-    }
+    console.log("Formateando coordenadas:", { lat, lon });
 
-    // Si el WKT tiene el formato GeoJSON
-    if (typeof wkt === "string" && wkt.includes('"type":"Point"')) {
-      const geoJSON = JSON.parse(wkt);
-      const [lon, lat] = geoJSON.coordinates;
-      return { latitud: lat, longitud: lon, profundidad };
-    }
+    const latSex = decimalToSexagesimal(lat, "latitud");
+    const lonSex = decimalToSexagesimal(lon, "longitud");
 
-    // Si el WKT tiene el formato SRID=4326;POINT(lon lat)
-    if (wkt.startsWith("SRID=4326;POINT(")) {
-      const coords = wkt.replace("SRID=4326;POINT(", "").replace(")", "");
-      const [lon, lat] = coords.split(" ").map(Number);
-      return { latitud: lat, longitud: lon, profundidad };
-    }
+    console.log("Coordenadas sexagesimales:", { latSex, lonSex });
 
-    // Si el WKT tiene el formato POINT(lon lat)
-    if (wkt.startsWith("POINT(")) {
-      const coords = wkt.replace("POINT(", "").replace(")", "");
-      const [lon, lat] = coords.split(" ").map(Number);
-      return { latitud: lat, longitud: lon, profundidad };
-    }
+    // Formatear con 2 decimales para los segundos
+    const latSeconds = latSex.segundos.toFixed(2);
+    const lonSeconds = lonSex.segundos.toFixed(2);
 
-    // Si el WKT tiene el formato hexadecimal
-    if (wkt.includes("E6100000")) {
-      const hexPart = wkt.substring(18);
-      const lonHex = hexPart.substring(0, 16);
-      const latHex = hexPart.substring(16, 32);
-
-      const buf1 = Buffer.from(lonHex, "hex");
-      const buf2 = Buffer.from(latHex, "hex");
-
-      const lon = buf1.readDoubleLE(0);
-      const lat = buf2.readDoubleLE(0);
-
-      return { latitud: lat, longitud: lon, profundidad };
-    }
-
-    console.warn("Formato WKT no reconocido:", wkt);
-    return undefined;
+    return `${Math.abs(latSex.grados)}° ${latSex.minutos}' ${latSeconds}" ${
+      latSex.direccion
+    }, ${Math.abs(lonSex.grados)}° ${lonSex.minutos}' ${lonSeconds}" ${
+      lonSex.direccion
+    }`;
   } catch (error) {
-    console.error("Error parsing WKT:", error, "for input:", wkt);
-    return undefined;
+    console.error("Error formateando coordenadas:", error, { lat, lon });
+    return `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
   }
 }
 
-/**
- * Parsea coordenadas individuales (latitud o longitud) en formato de grados, minutos y segundos
- * @param coordinate Valor decimal de la coordenada
- * @param type Tipo de coordenada: "lat" para latitud o "lon" para longitud
- * @param format Formato de salida, por defecto "DMS" (grados, minutos, segundos)
- * @returns String formateado de la coordenada
- */
-export function parseCoordinates(
-  coordinate: number,
-  type: "lat" | "lon",
-  format: "DMS" | "decimal" = "DMS"
-): string {
-  if (format === "decimal") {
-    return coordinate.toFixed(6);
+export function parseWKTToCoordinates(
+  wktString: string | null,
+  profundidad: number = 0
+): Coordenada | null {
+  if (!wktString || wktString.trim() === "") return null;
+
+  console.log("Intentando parsear WKT:", wktString);
+
+  // Intentamos diferentes patrones de coincidencia
+  // 1. Patrón estándar WKT: POINT(lon lat)
+  let match = wktString.match(/POINT\((-?\d+\.?\d*) (-?\d+\.?\d*)\)/);
+
+  // 2. Si no coincide, intentamos el patrón con SRID: SRID=4326;POINT(lon lat)
+  if (!match) {
+    match = wktString.match(/SRID=\d+;POINT\((-?\d+\.?\d*) (-?\d+\.?\d*)\)/);
   }
 
-  const tipo = type === "lat" ? "latitud" : "longitud";
-  const { grados, minutos, segundos, direccion } = decimalToSexagesimal(
-    coordinate,
-    tipo
-  );
+  // 3. Último intento: buscar cualquier par de coordenadas en el formato (lon lat)
+  if (!match) {
+    match = wktString.match(/\((-?\d+\.?\d*) (-?\d+\.?\d*)\)/);
+  }
 
-  // Formatear con grados, minutos y segundos
-  return `${Math.abs(grados)}° ${minutos}' ${segundos.toFixed(
-    1
-  )}" ${direccion}`;
+  if (!match) {
+    console.warn("No se pudo parsear el formato WKT:", wktString);
+    return null;
+  }
+
+  const result = {
+    longitud: parseFloat(match[1]),
+    latitud: parseFloat(match[2]),
+    profundidad,
+  };
+
+  console.log("WKT parseado con éxito:", result);
+  return result;
+}
+
+export function parseGeoJSONToCoordinates(
+  geoJSONString: string | null,
+  profundidad: number = 0
+): Coordenada | null {
+  if (!geoJSONString || geoJSONString.trim() === "") return null;
+
+  console.log("Intentando parsear GeoJSON:", geoJSONString);
+
+  try {
+    // Si es un string JSON, intentamos parsearlo
+    if (
+      geoJSONString.includes('"type":"Point"') ||
+      geoJSONString.includes('"type": "Point"')
+    ) {
+      const parsed = parseGeoJSONPoint(geoJSONString, profundidad);
+
+      if (parsed) {
+        console.log("GeoJSON parseado con éxito:", parsed);
+        return {
+          latitud: parsed.lat,
+          longitud: parsed.lng,
+          profundidad: parsed.depth,
+        };
+      }
+    }
+
+    // Si no es un GeoJSON válido, intentamos como última opción si tiene algún formato de coordenadas
+    // Esto es por si acaso el string contiene coordenadas pero no en formato GeoJSON
+    const coordPattern = /(-?\d+\.?\d*)[,\s]+(-?\d+\.?\d*)/;
+    const match = geoJSONString.match(coordPattern);
+
+    if (match) {
+      const result = {
+        // En este caso asumimos que es lat,lng (a diferencia de WKT que es lng,lat)
+        latitud: parseFloat(match[1]),
+        longitud: parseFloat(match[2]),
+        profundidad,
+      };
+
+      console.log("Coordenadas extraídas del string:", result);
+      return result;
+    }
+
+    console.warn("No se pudo parsear el GeoJSON:", geoJSONString);
+    return null;
+  } catch (error) {
+    console.error("Error al parsear GeoJSON:", error);
+    return null;
+  }
+}
+
+// Función para parsear un punto en formato GeoJSON
+export function parseGeoJSONPoint(
+  geoJSONString: string,
+  profundidad: number = 0
+): { lat: number; lng: number; depth: number } | null {
+  try {
+    // Intentar parsear el JSON
+    const geoJSON = JSON.parse(geoJSONString);
+
+    // Verificar que es un punto
+    if (
+      geoJSON.type !== "Point" ||
+      !Array.isArray(geoJSON.coordinates) ||
+      geoJSON.coordinates.length < 2
+    ) {
+      console.error("No es un punto GeoJSON válido:", geoJSONString);
+      return null;
+    }
+
+    // En GeoJSON, el formato es [longitud, latitud]
+    const [lng, lat] = geoJSON.coordinates;
+
+    return {
+      lat: lat,
+      lng: lng,
+      depth: profundidad,
+    };
+  } catch (error) {
+    console.error("Error al parsear GeoJSON:", error, geoJSONString);
+    return null;
+  }
+}
+
+// Función para convertir formato WKT hexadecimal a GeoJSON
+export function wktHexToGeoJSON(wktHex: string): string | null {
+  // Si ya es un GeoJSON, devolverlo tal cual
+  if (wktHex.includes('"type":"Point"')) return wktHex;
+
+  // Intentar parsear como WKT
+  const point = parseWKTToDecimalPosition(wktHex);
+  if (!point) return null;
+
+  // Convertir a formato GeoJSON
+  return JSON.stringify({
+    type: "Point",
+    coordinates: [point.longitud, point.latitud],
+  });
+}
+
+// Función para parsear coordenadas en formato WKB hexadecimal (PostGIS)
+export function parseWKBHex(wkbHex: string): Coordenada | null {
+  // Verificar si es un formato hexadecimal de PostGIS
+  if (!/^0101000020E6100000/.test(wkbHex)) {
+    console.warn("No parece ser un formato WKB hexadecimal válido:", wkbHex);
+    return null;
+  }
+
+  try {
+    // El formato WKB hex para POINT en PostGIS es:
+    // 0101000020E6100000 + 8 bytes para X + 8 bytes para Y en little endian
+    // Comenzamos en el byte 18 (después del encabezado)
+    const xHex = wkbHex.substr(18, 16); // 8 bytes (16 caracteres hex) para X
+    const yHex = wkbHex.substr(34, 16); // 8 bytes (16 caracteres hex) para Y
+
+    // Convertir de hex a IEEE 754 double (64 bits)
+    const xDouble = hexToDouble(xHex);
+    const yDouble = hexToDouble(yHex);
+
+    console.log("WKB Hex parseado:", { lng: xDouble, lat: yDouble });
+
+    return {
+      longitud: xDouble,
+      latitud: yDouble,
+      profundidad: undefined,
+    };
+  } catch (error) {
+    console.error("Error parseando WKB hexadecimal:", error);
+    return null;
+  }
+}
+
+// Función auxiliar para convertir hex a double
+function hexToDouble(hex: string): number {
+  // Reorganizar bytes para convertir de little endian a big endian
+  const bigEndianHex = hex.match(/../g)?.reverse().join("") || "";
+
+  // Convertir hex a ArrayBuffer
+  const buffer = new ArrayBuffer(8); // 8 bytes = 64 bits
+  const view = new DataView(buffer);
+
+  // Llenar el buffer con los bytes del hex
+  for (let i = 0; i < 8; i++) {
+    const byte = parseInt(bigEndianHex.substr(i * 2, 2), 16);
+    view.setUint8(i, byte);
+  }
+
+  // Leer como double (float64)
+  return view.getFloat64(0);
 }

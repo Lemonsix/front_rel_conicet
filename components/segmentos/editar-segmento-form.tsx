@@ -25,38 +25,51 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Segmento } from "@/lib/types/segmento";
+import { Sustrato } from "@/lib/types/sustrato";
 import {
   updateSegmentoAction,
   getSustratosAction,
-  calcularDistanciaHaversine,
 } from "@/lib/actions/segmentos";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
+import {
+  decimalToSexagesimal,
+  calcularDistanciaHaversine,
+  decimalPositionToWKT,
+} from "@/lib/utils/coordinates";
 
 // Definir el esquema de validación
 const formSchema = z.object({
   numero: z.number().min(1, "El número de segmento debe ser mayor a 0"),
   coordenadas_inicio: z.object({
     latitud: z.object({
+      grados: z.number().min(0).max(90),
       minutos: z.number().min(0).max(59),
       segundos: z.number().min(0).max(59.99),
+      direccion: z.enum(["N", "S"]),
     }),
     longitud: z.object({
+      grados: z.number().min(0).max(180),
       minutos: z.number().min(0).max(59),
       segundos: z.number().min(0).max(59.99),
+      direccion: z.enum(["E", "O"]),
     }),
   }),
   coordenadas_fin: z.object({
     latitud: z.object({
+      grados: z.number().min(0).max(90),
       minutos: z.number().min(0).max(59),
       segundos: z.number().min(0).max(59.99),
+      direccion: z.enum(["N", "S"]),
     }),
     longitud: z.object({
+      grados: z.number().min(0).max(180),
       minutos: z.number().min(0).max(59),
       segundos: z.number().min(0).max(59.99),
+      direccion: z.enum(["E", "O"]),
     }),
   }),
   profundidad_final: z
@@ -79,22 +92,6 @@ interface EditarSegmentoFormProps {
   onSuccess?: () => void;
 }
 
-interface Sustrato {
-  id: number;
-  codigo: string;
-  descripcion: string;
-}
-
-// Función para convertir coordenadas decimales a minutos y segundos
-function decimalToDMS(decimal: number): { minutos: number; segundos: number } {
-  const minutos = Math.floor(Math.abs(decimal) * 60);
-  const segundos = (Math.abs(decimal) * 60 - minutos) * 60;
-  return {
-    minutos: Math.floor(minutos),
-    segundos: Math.round(segundos * 100) / 100,
-  };
-}
-
 export function EditarSegmentoForm({
   segmento,
   isOpen,
@@ -107,22 +104,118 @@ export function EditarSegmentoForm({
   // Convertir las coordenadas del segmento a minutos y segundos
   const coordenadasInicio = segmento.coordenadasInicio
     ? {
-        latitud: decimalToDMS(segmento.coordenadasInicio.latitud),
-        longitud: decimalToDMS(segmento.coordenadasInicio.longitud),
+        latitud: {
+          grados: decimalToSexagesimal(
+            segmento.coordenadasInicio.latitud,
+            "latitud"
+          ).grados,
+          minutos: decimalToSexagesimal(
+            segmento.coordenadasInicio.latitud,
+            "latitud"
+          ).minutos,
+          segundos: decimalToSexagesimal(
+            segmento.coordenadasInicio.latitud,
+            "latitud"
+          ).segundos,
+          direccion: (decimalToSexagesimal(
+            segmento.coordenadasInicio.latitud,
+            "latitud"
+          ).direccion === "N"
+            ? "N"
+            : "S") as "N" | "S",
+        },
+        longitud: {
+          grados: decimalToSexagesimal(
+            segmento.coordenadasInicio.longitud,
+            "longitud"
+          ).grados,
+          minutos: decimalToSexagesimal(
+            segmento.coordenadasInicio.longitud,
+            "longitud"
+          ).minutos,
+          segundos: decimalToSexagesimal(
+            segmento.coordenadasInicio.longitud,
+            "longitud"
+          ).segundos,
+          direccion: (decimalToSexagesimal(
+            segmento.coordenadasInicio.longitud,
+            "longitud"
+          ).direccion === "E"
+            ? "E"
+            : "O") as "E" | "O",
+        },
       }
     : {
-        latitud: { minutos: 0, segundos: 0 },
-        longitud: { minutos: 0, segundos: 0 },
+        latitud: {
+          grados: 0,
+          minutos: 0,
+          segundos: 0,
+          direccion: "S" as const,
+        },
+        longitud: {
+          grados: 0,
+          minutos: 0,
+          segundos: 0,
+          direccion: "O" as const,
+        },
       };
 
   const coordenadasFin = segmento.coordenadasFin
     ? {
-        latitud: decimalToDMS(segmento.coordenadasFin.latitud),
-        longitud: decimalToDMS(segmento.coordenadasFin.longitud),
+        latitud: {
+          grados: decimalToSexagesimal(
+            segmento.coordenadasFin.latitud,
+            "latitud"
+          ).grados,
+          minutos: decimalToSexagesimal(
+            segmento.coordenadasFin.latitud,
+            "latitud"
+          ).minutos,
+          segundos: decimalToSexagesimal(
+            segmento.coordenadasFin.latitud,
+            "latitud"
+          ).segundos,
+          direccion: (decimalToSexagesimal(
+            segmento.coordenadasFin.latitud,
+            "latitud"
+          ).direccion === "N"
+            ? "N"
+            : "S") as "N" | "S",
+        },
+        longitud: {
+          grados: decimalToSexagesimal(
+            segmento.coordenadasFin.longitud,
+            "longitud"
+          ).grados,
+          minutos: decimalToSexagesimal(
+            segmento.coordenadasFin.longitud,
+            "longitud"
+          ).minutos,
+          segundos: decimalToSexagesimal(
+            segmento.coordenadasFin.longitud,
+            "longitud"
+          ).segundos,
+          direccion: (decimalToSexagesimal(
+            segmento.coordenadasFin.longitud,
+            "longitud"
+          ).direccion === "E"
+            ? "E"
+            : "O") as "E" | "O",
+        },
       }
     : {
-        latitud: { minutos: 0, segundos: 0 },
-        longitud: { minutos: 0, segundos: 0 },
+        latitud: {
+          grados: 0,
+          minutos: 0,
+          segundos: 0,
+          direccion: "S" as const,
+        },
+        longitud: {
+          grados: 0,
+          minutos: 0,
+          segundos: 0,
+          direccion: "O" as const,
+        },
       };
 
   const form = useForm<FormValues>({
@@ -140,20 +233,26 @@ export function EditarSegmentoForm({
 
   useEffect(() => {
     const fetchSustratos = async () => {
-      const result = await getSustratosAction();
-      if (result.error) {
+      try {
+        const result = await getSustratosAction();
+        if (result.error) {
+          toast.error("Error al cargar sustratos");
+          return;
+        }
+
+        // Filtrar los sustratos para asegurar que código y descripción sean strings (no null)
+        const sustratosFiltrados = (result.data || []).filter(
+          (sustrato): sustrato is Sustrato =>
+            typeof sustrato.codigo === "string" &&
+            typeof sustrato.descripcion === "string"
+        );
+
+        setSustratos(sustratosFiltrados);
+
+        console.log("Sustrato ID del segmento:", segmento.sustratoId);
+        console.log("Valor actual del form:", form.getValues("sustratoId"));
+      } catch (error) {
         toast.error("Error al cargar sustratos");
-        return;
-      }
-      setSustratos(result.data || []);
-
-      console.log("Sustrato ID del segmento:", segmento.sustratoId);
-      console.log("Valor actual del form:", form.getValues("sustratoId"));
-
-      // Establecer el valor del sustrato después de cargar los datos
-      if (segmento.sustratoId) {
-        form.setValue("sustratoId", segmento.sustratoId.toString());
-        console.log("Valor después de setValue:", form.getValues("sustratoId"));
       }
     };
     fetchSustratos();
@@ -162,36 +261,56 @@ export function EditarSegmentoForm({
   const onSubmit = async (values: FormValues) => {
     setLoading(true);
     try {
-      // Coordenadas con minutos y segundos editables (sin modificar los grados directamente)
-      const latDecimal =
-        ((segmento.coordenadasFin?.latitud ?? 0) < 0 ? -1 : 1) *
-        (Math.abs(Math.floor(segmento.coordenadasFin?.latitud ?? 0)) +
-          values.coordenadas_fin.latitud.minutos / 60 +
-          values.coordenadas_fin.latitud.segundos / 3600);
+      // Convertir coordenadas sexagesimales a decimales para punto final
+      const latGrados = values.coordenadas_fin.latitud.grados;
+      const latMinutos = values.coordenadas_fin.latitud.minutos;
+      const latSegundos = values.coordenadas_fin.latitud.segundos;
+      const latDireccion = values.coordenadas_fin.latitud.direccion;
 
-      const lonDecimal =
-        ((segmento.coordenadasFin?.longitud ?? 0) < 0 ? -1 : 1) *
-        (Math.abs(Math.floor(segmento.coordenadasFin?.longitud ?? 0)) +
-          values.coordenadas_fin.longitud.minutos / 60 +
-          values.coordenadas_fin.longitud.segundos / 3600);
+      const lonGrados = values.coordenadas_fin.longitud.grados;
+      const lonMinutos = values.coordenadas_fin.longitud.minutos;
+      const lonSegundos = values.coordenadas_fin.longitud.segundos;
+      const lonDireccion = values.coordenadas_fin.longitud.direccion;
 
-      // Crear el punto WKT para las coordenadas de fin
-      const wktPointFin = `SRID=4326;POINT(${lonDecimal} ${latDecimal})`;
+      // Convertir a decimales
+      let latDecimal = latGrados + latMinutos / 60 + latSegundos / 3600;
+      latDecimal = latDireccion === "S" ? -latDecimal : latDecimal;
 
-      // Calcular las coordenadas de inicio
-      const latInicioDecimal =
-        ((segmento.coordenadasInicio?.latitud ?? 0) < 0 ? -1 : 1) *
-        (Math.abs(Math.floor(segmento.coordenadasInicio?.latitud ?? 0)) +
-          values.coordenadas_inicio.latitud.minutos / 60 +
-          values.coordenadas_inicio.latitud.segundos / 3600);
+      let lonDecimal = lonGrados + lonMinutos / 60 + lonSegundos / 3600;
+      lonDecimal = lonDireccion === "O" ? -lonDecimal : lonDecimal;
 
-      const lonInicioDecimal =
-        ((segmento.coordenadasInicio?.longitud ?? 0) < 0 ? -1 : 1) *
-        (Math.abs(Math.floor(segmento.coordenadasInicio?.longitud ?? 0)) +
-          values.coordenadas_inicio.longitud.minutos / 60 +
-          values.coordenadas_inicio.longitud.segundos / 3600);
+      // Convertir coordenadas sexagesimales a decimales para punto inicial
+      const latInicioGrados = values.coordenadas_inicio.latitud.grados;
+      const latInicioMinutos = values.coordenadas_inicio.latitud.minutos;
+      const latInicioSegundos = values.coordenadas_inicio.latitud.segundos;
+      const latInicioDireccion = values.coordenadas_inicio.latitud.direccion;
 
-      const wktPointInicio = `SRID=4326;POINT(${lonInicioDecimal} ${latInicioDecimal})`;
+      const lonInicioGrados = values.coordenadas_inicio.longitud.grados;
+      const lonInicioMinutos = values.coordenadas_inicio.longitud.minutos;
+      const lonInicioSegundos = values.coordenadas_inicio.longitud.segundos;
+      const lonInicioDireccion = values.coordenadas_inicio.longitud.direccion;
+
+      // Convertir a decimales
+      let latInicioDecimal =
+        latInicioGrados + latInicioMinutos / 60 + latInicioSegundos / 3600;
+      latInicioDecimal =
+        latInicioDireccion === "S" ? -latInicioDecimal : latInicioDecimal;
+
+      let lonInicioDecimal =
+        lonInicioGrados + lonInicioMinutos / 60 + lonInicioSegundos / 3600;
+      lonInicioDecimal =
+        lonInicioDireccion === "O" ? -lonInicioDecimal : lonInicioDecimal;
+
+      // Crear el punto WKT para las coordenadas de fin e inicio
+      const wktPointFin = decimalPositionToWKT({
+        latitud: latDecimal,
+        longitud: lonDecimal,
+      });
+
+      const wktPointInicio = decimalPositionToWKT({
+        latitud: latInicioDecimal,
+        longitud: lonInicioDecimal,
+      });
 
       // Calcular el largo entre los puntos de inicio y fin
       const largo = await calcularDistanciaHaversine(
@@ -203,7 +322,7 @@ export function EditarSegmentoForm({
 
       await updateSegmentoAction({
         id: segmento.id,
-        transecta_id: segmento.transectId,
+        transecta_id: segmento.transectaId,
         numero: values.numero,
         coordenadas_inicio: wktPointInicio,
         coordenadas_fin: wktPointFin,
@@ -211,7 +330,7 @@ export function EditarSegmentoForm({
         profundidad_inicial: values.profundidad_inicial || 0,
         sustrato_id: parseInt(values.sustratoId),
         conteo: values.conteo,
-        distancia: largo,
+        largo: largo,
         est_minima: 0,
       });
 
@@ -305,7 +424,31 @@ export function EditarSegmentoForm({
                   {/* Latitud Inicio */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex items-center gap-1">
-                      <span className="text-base font-medium">42°</span>
+                      <FormField
+                        control={form.control}
+                        name="coordenadas_inicio.latitud.grados"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                readOnly
+                                className="w-20 text-center "
+                                {...field}
+                                onChange={(e) =>
+                                  field.onChange(
+                                    Number.parseInt(e.target.value)
+                                  )
+                                }
+                              />
+                            </FormControl>
+                            <FormDescription className="text-center">
+                              grados
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
+                      <span className="text-base">°</span>
                       <FormField
                         control={form.control}
                         name="coordenadas_inicio.latitud.minutos"
@@ -354,14 +497,59 @@ export function EditarSegmentoForm({
                           </FormItem>
                         )}
                       />
-                      <span className="text-nowrap">&quot;S</span>
+                      <span className="text-base">&quot;</span>
+                      <FormField
+                        control={form.control}
+                        name="coordenadas_inicio.latitud.direccion"
+                        render={({ field }) => (
+                          <FormItem>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-[70px]">
+                                  <SelectValue placeholder="Dir" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="N">N</SelectItem>
+                                <SelectItem value="S">S</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
                     </div>
                   </div>
 
                   {/* Longitud Inicio */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex items-center gap-1">
-                      <span className="text-base font-medium">64°</span>
+                      <FormField
+                        control={form.control}
+                        name="coordenadas_inicio.longitud.grados"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                className="w-20 text-center"
+                                {...field}
+                                onChange={(e) =>
+                                  field.onChange(
+                                    Number.parseInt(e.target.value)
+                                  )
+                                }
+                              />
+                            </FormControl>
+                            <FormDescription className="text-center">
+                              grados
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
+                      <span className="text-base">°</span>
                       <FormField
                         control={form.control}
                         name="coordenadas_inicio.longitud.minutos"
@@ -410,7 +598,29 @@ export function EditarSegmentoForm({
                           </FormItem>
                         )}
                       />
-                      <span className="text-nowrap">&quot;O</span>
+                      <span className="text-base">&quot;</span>
+                      <FormField
+                        control={form.control}
+                        name="coordenadas_inicio.longitud.direccion"
+                        render={({ field }) => (
+                          <FormItem>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-[70px]">
+                                  <SelectValue placeholder="Dir" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="E">E</SelectItem>
+                                <SelectItem value="O">O</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
                     </div>
                   </div>
                 </div>
@@ -454,7 +664,30 @@ export function EditarSegmentoForm({
                   {/* Latitud Fin */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex items-center gap-1">
-                      <span className="text-base font-medium">42°</span>
+                      <FormField
+                        control={form.control}
+                        name="coordenadas_fin.latitud.grados"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                className="w-20 text-center"
+                                {...field}
+                                onChange={(e) =>
+                                  field.onChange(
+                                    Number.parseInt(e.target.value)
+                                  )
+                                }
+                              />
+                            </FormControl>
+                            <FormDescription className="text-center">
+                              grados
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
+                      <span className="text-base">°</span>
                       <FormField
                         control={form.control}
                         name="coordenadas_fin.latitud.minutos"
@@ -503,14 +736,59 @@ export function EditarSegmentoForm({
                           </FormItem>
                         )}
                       />
-                      <span className="text-nowrap">&quot; S</span>
+                      <span className="text-base">&quot;</span>
+                      <FormField
+                        control={form.control}
+                        name="coordenadas_fin.latitud.direccion"
+                        render={({ field }) => (
+                          <FormItem>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-[70px]">
+                                  <SelectValue placeholder="Dir" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="N">N</SelectItem>
+                                <SelectItem value="S">S</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
                     </div>
                   </div>
 
                   {/* Longitud Fin */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex items-center gap-1">
-                      <span className="text-base font-medium">64°</span>
+                      <FormField
+                        control={form.control}
+                        name="coordenadas_fin.longitud.grados"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                className="w-20 text-center"
+                                {...field}
+                                onChange={(e) =>
+                                  field.onChange(
+                                    Number.parseInt(e.target.value)
+                                  )
+                                }
+                              />
+                            </FormControl>
+                            <FormDescription className="text-center">
+                              grados
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
+                      <span className="text-base">°</span>
                       <FormField
                         control={form.control}
                         name="coordenadas_fin.longitud.minutos"
@@ -559,7 +837,29 @@ export function EditarSegmentoForm({
                           </FormItem>
                         )}
                       />
-                      <span className="text-nowrap">&quot; O</span>
+                      <span className="text-base">&quot;</span>
+                      <FormField
+                        control={form.control}
+                        name="coordenadas_fin.longitud.direccion"
+                        render={({ field }) => (
+                          <FormItem>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-[70px]">
+                                  <SelectValue placeholder="Dir" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="E">E</SelectItem>
+                                <SelectItem value="O">O</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
                     </div>
                   </div>
                 </div>

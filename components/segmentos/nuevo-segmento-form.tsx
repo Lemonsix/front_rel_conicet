@@ -26,13 +26,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  calcularDistanciaHaversine,
   checkSegmentoNumberAvailabilityAction,
   createSegmentoAction,
   getSustratosAction,
   getUltimoSegmentoAction,
 } from "@/lib/actions/segmentos";
 import { Segmento } from "@/lib/types/segmento";
+import { Sustrato } from "@/lib/types/sustrato";
+import {
+  decimalPositionToWKT,
+  positionSexagesimalToDecimal,
+  calcularDistanciaHaversine,
+} from "@/lib/utils/coordinates";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -41,36 +46,13 @@ import * as z from "zod";
 
 // Definir el esquema de validación
 const formSchema = z.object({
-  numero: z.number().min(1, "El número de segmento debe ser mayor a 0"),
-  coordenadas_inicio: z.object({
-    latitud: z.object({
-      minutos: z.number().min(0).max(59),
-      segundos: z.number().min(0).max(59.99),
-    }),
-    longitud: z.object({
-      minutos: z.number().min(0).max(59),
-      segundos: z.number().min(0).max(59.99),
-    }),
-  }),
-  coordenadas_fin: z.object({
-    latitud: z.object({
-      minutos: z.number().min(0).max(59),
-      segundos: z.number().min(0).max(59.99),
-    }),
-    longitud: z.object({
-      minutos: z.number().min(0).max(59),
-      segundos: z.number().min(0).max(59.99),
-    }),
-  }),
-  profundidad_final: z
-    .number()
-    .min(0, "La profundidad debe ser mayor o igual a 0"),
-  profundidad_inicial: z
-    .number()
-    .min(0, "La profundidad debe ser mayor o igual a 0")
-    .optional(),
-  conteo: z.number().min(0, "El conteo debe ser mayor o igual a 0"),
-  sustratoId: z.string().min(1, "El sustrato es requerido"),
+  numero: z.number().min(1),
+  coordenadas_inicio: z.any(),
+  coordenadas_fin: z.any(),
+  profundidad_final: z.number().min(0),
+  profundidad_inicial: z.number().min(0).optional(),
+  conteo: z.number().min(0),
+  sustratoId: z.string().min(1),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -78,12 +60,6 @@ type FormValues = z.infer<typeof formSchema>;
 interface NuevoSegmentoFormProps {
   transectaId: number;
   onSuccess?: () => void;
-}
-
-interface Sustrato {
-  id: number;
-  codigo: string;
-  descripcion: string;
 }
 
 export function NuevoSegmentoForm({
@@ -103,22 +79,30 @@ export function NuevoSegmentoForm({
       numero: 1,
       coordenadas_inicio: {
         latitud: {
+          grados: 42,
           minutos: 0,
           segundos: 0,
+          direccion: "S",
         },
         longitud: {
+          grados: 64,
           minutos: 0,
           segundos: 0,
+          direccion: "W",
         },
       },
       coordenadas_fin: {
         latitud: {
+          grados: 42,
           minutos: 0,
           segundos: 0,
+          direccion: "S",
         },
         longitud: {
+          grados: 64,
           minutos: 0,
           segundos: 0,
+          direccion: "W",
         },
       },
       profundidad_final: 0,
@@ -130,14 +114,24 @@ export function NuevoSegmentoForm({
 
   useEffect(() => {
     const fetchSustratos = async () => {
-      const result = await getSustratosAction();
+      try {
+        const result = await getSustratosAction();
+        if (result.error) {
+          toast.error("Error al cargar sustratos");
+          return;
+        }
 
-      if (result.error) {
+        // Filtrar los sustratos para asegurar que código y descripción sean strings (no null)
+        const sustratosFiltrados = (result.data || []).filter(
+          (sustrato): sustrato is Sustrato =>
+            typeof sustrato.codigo === "string" &&
+            typeof sustrato.descripcion === "string"
+        );
+
+        setSustratos(sustratosFiltrados);
+      } catch (error) {
         toast.error("Error al cargar sustratos");
-        return;
       }
-
-      setSustratos(result.data || []);
     };
 
     fetchSustratos();
@@ -174,75 +168,34 @@ export function NuevoSegmentoForm({
 
     setLoading(true);
     try {
-      // Coordenadas fijas con minutos y segundos editables
-      const latDecimal =
-        -42 -
-        values.coordenadas_fin.latitud.minutos / 60 -
-        values.coordenadas_fin.latitud.segundos / 3600;
-      const lonDecimal =
-        -64 -
-        values.coordenadas_fin.longitud.minutos / 60 -
-        values.coordenadas_fin.longitud.segundos / 3600;
+      const inicioDecimal = esPrimerSegmento
+        ? positionSexagesimalToDecimal(values.coordenadas_inicio)
+        : {
+            latitud: ultimoSegmento?.coordenadasFin?.latitud ?? 0,
+            longitud: ultimoSegmento?.coordenadasFin?.longitud ?? 0,
+          };
 
-      // Crear el punto WKT para las coordenadas de fin
-      const wktPointFin = `SRID=4326;POINT(${lonDecimal} ${latDecimal})`;
+      const finDecimal = positionSexagesimalToDecimal(values.coordenadas_fin);
 
-      let wktPointInicio: string;
-      let largo = 0;
-
-      if (esPrimerSegmento) {
-        // Si es el primer segmento, calcular las coordenadas de inicio
-        const latInicioDecimal =
-          -42 -
-          values.coordenadas_inicio.latitud.minutos / 60 -
-          values.coordenadas_inicio.latitud.segundos / 3600;
-        const lonInicioDecimal =
-          -64 -
-          values.coordenadas_inicio.longitud.minutos / 60 -
-          values.coordenadas_inicio.longitud.segundos / 3600;
-
-        wktPointInicio = `SRID=4326;POINT(${lonInicioDecimal} ${latInicioDecimal})`;
-
-        // Calcular el largo entre los puntos de inicio y fin
-        largo = await calcularDistanciaHaversine(
-          latInicioDecimal,
-          lonInicioDecimal,
-          latDecimal,
-          lonDecimal
-        );
-      } else {
-        // Si no es el primer segmento, usar las coordenadas del segmento anterior
-        const ultimoSegmento = await getUltimoSegmentoAction(transectaId);
-        if (ultimoSegmento.data?.coordenadasFin) {
-          // Convertir el Waypoint a string WKT
-          wktPointInicio = `SRID=4326;POINT(${ultimoSegmento.data.coordenadasFin.longitud} ${ultimoSegmento.data.coordenadasFin.latitud})`;
-
-          // Calcular el largo entre el punto final del segmento anterior y el punto final del nuevo segmento
-          largo = await calcularDistanciaHaversine(
-            ultimoSegmento.data.coordenadasFin.latitud,
-            ultimoSegmento.data.coordenadasFin.longitud,
-            latDecimal,
-            lonDecimal
-          );
-        } else {
-          throw new Error(
-            "No se encontraron las coordenadas del segmento anterior"
-          );
-        }
-      }
+      const largo = await calcularDistanciaHaversine(
+        inicioDecimal.latitud,
+        inicioDecimal.longitud,
+        finDecimal.latitud,
+        finDecimal.longitud
+      );
 
       const result = await createSegmentoAction({
         transecta_id: transectaId,
         numero: values.numero,
-        coordenadas_inicio: wktPointInicio,
-        coordenadas_fin: wktPointFin,
+        coordenadas_inicio: decimalPositionToWKT(inicioDecimal),
+        coordenadas_fin: decimalPositionToWKT(finDecimal),
         profundidad_final: values.profundidad_final,
         profundidad_inicial: esPrimerSegmento
           ? values.profundidad_inicial
           : undefined,
         sustrato_id: parseInt(values.sustratoId),
         conteo: values.conteo,
-        largo: largo,
+        largo,
         est_minima: 0,
       });
 
@@ -250,15 +203,12 @@ export function NuevoSegmentoForm({
         throw new Error(result.error);
       }
 
-      toast.success("Segmento creado exitosamente");
+      toast.success("Segmento creado");
       onSuccess?.();
       setIsOpen(false);
       form.reset();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Error al crear el segmento"
-      );
-      console.error("Error:", error);
+    } catch (error: any) {
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }

@@ -9,6 +9,6 @@ export interface Marisqueo {
   tieneMuestreo: boolean;
   buzoId?: number;
   buzo?: Persona;
-  NroCaptura: number;
-  PesoMuestra: number;
+  nCaptura: number;
+  pesoMuestra: number;
 }

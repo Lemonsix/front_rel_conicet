@@ -17,6 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
+import { mapEmbarcaciones } from "@/lib/mappers/embarcacion";
 
 function EmbarcacionesTableContent() {
   const [embarcaciones, setEmbarcaciones] = useState<Embarcacion[]>([]);
@@ -30,7 +31,7 @@ function EmbarcacionesTableContent() {
         throw new Error(result.error);
       }
 
-      setEmbarcaciones(result.data || []);
+      setEmbarcaciones(mapEmbarcaciones(result.data || []));
     } catch (error) {
       toast.error("Error al cargar embarcaciones");
       console.error("Error:", error);

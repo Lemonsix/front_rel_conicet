@@ -2,12 +2,9 @@
 
 import { createClient } from "@/lib/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { Tables, TablesInsert, TablesUpdate } from "@/lib/types/database.types";
 
-export async function createPersonaAction(formData: {
-  nombre: string;
-  apellido: string;
-  rol: string;
-}) {
+export async function createPersonaAction(formData: TablesInsert<"personas">) {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -24,7 +21,10 @@ export async function createPersonaAction(formData: {
   return { data };
 }
 
-export async function getPersonasAction() {
+export async function getPersonasAction(): Promise<{
+  data?: Tables<"personas">[];
+  error?: string;
+}> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -46,12 +46,15 @@ export async function getPersonasAction() {
   return { data };
 }
 
-export async function getPersonasByRolAction(rol: string) {
+export async function getPersonasByRolAction(rol: string): Promise<{
+  data?: Tables<"personas">[];
+  error?: string;
+}> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("personas")
-    .select("id, nombre, apellido")
+    .select("id, nombre, apellido, rol")
     .eq("rol", rol);
 
   if (error) {
@@ -63,12 +66,11 @@ export async function getPersonasByRolAction(rol: string) {
 
 export async function updatePersonaAction(
   id: number,
-  formData: {
-    nombre: string;
-    apellido: string;
-    rol: string;
-  }
-) {
+  formData: TablesUpdate<"personas">
+): Promise<{
+  data?: Tables<"personas">;
+  error?: string;
+}> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
