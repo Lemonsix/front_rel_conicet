@@ -3,7 +3,7 @@ interface SexagesimalCoordinate {
   grados: number;
   minutos: number;
   segundos: number;
-  direccion: "N" | "S" | "E" | "W";
+  direccion: "N" | "S" | "E" | "O";
 }
 
 // Coordenada sexagesimal completa (lat/lon)

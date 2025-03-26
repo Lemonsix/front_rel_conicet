@@ -37,6 +37,8 @@ import {
   decimalPositionToWKT,
   positionSexagesimalToDecimal,
   calcularDistanciaHaversine,
+  formatCoordinates,
+  parseWKTToDecimalPosition,
 } from "@/lib/utils/coordinates";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
@@ -88,7 +90,7 @@ export function NuevoSegmentoForm({
           grados: 64,
           minutos: 0,
           segundos: 0,
-          direccion: "W",
+          direccion: "O",
         },
       },
       coordenadas_fin: {
@@ -102,7 +104,7 @@ export function NuevoSegmentoForm({
           grados: 64,
           minutos: 0,
           segundos: 0,
-          direccion: "W",
+          direccion: "O",
         },
       },
       profundidad_final: 0,
@@ -143,10 +145,49 @@ export function NuevoSegmentoForm({
       setEsPrimerSegmento(!result.data);
       if (result.data) {
         setUltimoSegmento(result.data);
+        // Preseleccionar el número siguiente
+        form.setValue("numero", result.data.numero + 1);
+        // Preseleccionar las coordenadas de inicio con las de fin del segmento anterior
+        form.setValue("coordenadas_inicio", {
+          latitud: {
+            grados: Math.abs(
+              Math.floor(result.data.coordenadasFin?.latitud || 0)
+            ),
+            minutos: Math.floor(
+              (Math.abs(result.data.coordenadasFin?.latitud || 0) % 1) * 60
+            ),
+            segundos: Math.floor(
+              (((Math.abs(result.data.coordenadasFin?.latitud || 0) % 1) * 60) %
+                1) *
+                60
+            ),
+            direccion:
+              (result.data.coordenadasFin?.latitud || 0) >= 0 ? "N" : "S",
+          },
+          longitud: {
+            grados: Math.abs(
+              Math.floor(result.data.coordenadasFin?.longitud || 0)
+            ),
+            minutos: Math.floor(
+              (Math.abs(result.data.coordenadasFin?.longitud || 0) % 1) * 60
+            ),
+            segundos: Math.floor(
+              (((Math.abs(result.data.coordenadasFin?.longitud || 0) % 1) *
+                60) %
+                1) *
+                60
+            ),
+            direccion:
+              (result.data.coordenadasFin?.longitud || 0) >= 0 ? "E" : "O",
+          },
+        });
+        // Preseleccionar la profundidad inicial con la profundidad final del segmento anterior
+        form.setValue("profundidad_inicial", result.data.profundidadFinal || 0);
       }
     };
+
     checkPrimerSegmento();
-  }, [transectaId]);
+  }, [transectaId, form]);
 
   const checkNumeroDisponible = async (numero: number) => {
     const result = await checkSegmentoNumberAvailabilityAction(
@@ -213,6 +254,7 @@ export function NuevoSegmentoForm({
       setLoading(false);
     }
   };
+  console.log(ultimoSegmento);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -259,10 +301,7 @@ export function NuevoSegmentoForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Sustrato</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Seleccionar sustrato" />
@@ -349,7 +388,28 @@ export function NuevoSegmentoForm({
                             </FormItem>
                           )}
                         />
-                        <span className="text-nowrap">&quot;S</span>
+                        <FormField
+                          control={form.control}
+                          name="coordenadas_inicio.latitud.direccion"
+                          render={({ field }) => (
+                            <FormItem>
+                              <Select
+                                onValueChange={field.onChange}
+                                value={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger className="w-[70px]">
+                                    <SelectValue placeholder="Dir" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="N">N</SelectItem>
+                                  <SelectItem value="S">S</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </FormItem>
+                          )}
+                        />
                       </div>
                     </div>
 
@@ -405,7 +465,28 @@ export function NuevoSegmentoForm({
                             </FormItem>
                           )}
                         />
-                        <span className="text-nowrap">&quot;O</span>
+                        <FormField
+                          control={form.control}
+                          name="coordenadas_inicio.longitud.direccion"
+                          render={({ field }) => (
+                            <FormItem>
+                              <Select
+                                onValueChange={field.onChange}
+                                value={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger className="w-[70px]">
+                                    <SelectValue placeholder="Dir" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="E">E</SelectItem>
+                                  <SelectItem value="O">O</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </FormItem>
+                          )}
+                        />
                       </div>
                     </div>
                   </div>
@@ -448,8 +529,15 @@ export function NuevoSegmentoForm({
                     <div className="font-mono">
                       {ultimoSegmento?.coordenadasFin && (
                         <>
-                          {ultimoSegmento.coordenadasFin.latitud}° S,{" "}
-                          {ultimoSegmento.coordenadasFin.longitud}° O
+                          {(() => {
+                            const coords = ultimoSegmento.coordenadasFin;
+                            if (!coords) return "Error al parsear coordenadas";
+                            return `${formatCoordinates(coords.latitud, 0)} ${
+                              coords.latitud >= 0 ? "N" : "S"
+                            }, ${formatCoordinates(0, coords.longitud)} ${
+                              coords.longitud >= 0 ? "E" : "O"
+                            }`;
+                          })()}
                         </>
                       )}
                     </div>
@@ -531,7 +619,28 @@ export function NuevoSegmentoForm({
                           </FormItem>
                         )}
                       />
-                      <span className="text-nowrap">&quot; S</span>
+                      <FormField
+                        control={form.control}
+                        name="coordenadas_fin.latitud.direccion"
+                        render={({ field }) => (
+                          <FormItem>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-[70px]">
+                                  <SelectValue placeholder="Dir" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="N">N</SelectItem>
+                                <SelectItem value="S">S</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
                     </div>
                   </div>
 
@@ -587,7 +696,28 @@ export function NuevoSegmentoForm({
                           </FormItem>
                         )}
                       />
-                      <span className="text-nowrap">&quot; O</span>
+                      <FormField
+                        control={form.control}
+                        name="coordenadas_fin.longitud.direccion"
+                        render={({ field }) => (
+                          <FormItem>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-[70px]">
+                                  <SelectValue placeholder="Dir" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="E">E</SelectItem>
+                                <SelectItem value="O">O</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
                     </div>
                   </div>
                 </div>

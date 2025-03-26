@@ -3,7 +3,7 @@ export interface SexagesimalCoordinate {
   grados: number;
   minutos: number;
   segundos: number;
-  direccion: "N" | "S" | "E" | "W";
+  direccion: "N" | "S" | "E" | "O";
 }
 
 export interface SexagesimalPosition {
@@ -22,10 +22,28 @@ export interface Coordenada {
   profundidad?: number;
 }
 
+// Añadimos una referencia a la interfaz Waypoint para que la función pueda utilizarla
+export interface Waypoint {
+  latitud: number;
+  longitud: number;
+  profundidad?: number;
+}
+
 // conversions.ts
+export const decimalCoordinateToSexagesimal = (
+  lat: number,
+  lon: number
+): SexagesimalPosition => ({
+  latitud: decimalToSexagesimal(lat, "latitud"),
+  longitud: decimalToSexagesimal(lon, "longitud"),
+});
+
+export const sexagesimalCoordinateToDecimal = (
+  coord: SexagesimalPosition
+): DecimalPosition => positionSexagesimalToDecimal(coord);
 
 export const sexagesimalToDecimal = (coord: SexagesimalCoordinate): number => {
-  const sign = coord.direccion === "S" || coord.direccion === "W" ? -1 : 1;
+  const sign = coord.direccion === "S" || coord.direccion === "O" ? -1 : 1;
   return sign * (coord.grados + coord.minutos / 60 + coord.segundos / 3600);
 };
 
@@ -40,7 +58,7 @@ export const decimalToSexagesimal = (
   const segundos = Math.round((minutesNotTruncated - minutos) * 60 * 100) / 100;
 
   const direccion =
-    tipo === "latitud" ? (decimal >= 0 ? "N" : "S") : decimal >= 0 ? "E" : "W";
+    tipo === "latitud" ? (decimal >= 0 ? "N" : "S") : decimal >= 0 ? "E" : "O";
 
   return { grados, minutos, segundos, direccion };
 };
@@ -58,6 +76,150 @@ export const positionDecimalToSexagesimal = (
   latitud: decimalToSexagesimal(pos.latitud, "latitud"),
   longitud: decimalToSexagesimal(pos.longitud, "longitud"),
 });
+
+// NUEVAS FUNCIONES PARA FORMULARIOS
+/**
+ * Convierte un objeto de coordenadas sexagesimales del formulario a decimales
+ * @param coordenadas Objeto de coordenadas con formato del formulario
+ * @returns Objeto con coordenadas en formato decimal
+ */
+export const formSexagesimalToDecimal = (coordenadas: {
+  latitud: {
+    grados: number;
+    minutos: number;
+    segundos: number;
+    direccion: "N" | "S";
+  };
+  longitud: {
+    grados: number;
+    minutos: number;
+    segundos: number;
+    direccion: "E" | "O";
+  };
+}): DecimalPosition => {
+  // Convertir latitud
+  let latDecimal =
+    coordenadas.latitud.grados +
+    coordenadas.latitud.minutos / 60 +
+    coordenadas.latitud.segundos / 3600;
+  latDecimal = coordenadas.latitud.direccion === "S" ? -latDecimal : latDecimal;
+
+  // Convertir longitud
+  let lonDecimal =
+    coordenadas.longitud.grados +
+    coordenadas.longitud.minutos / 60 +
+    coordenadas.longitud.segundos / 3600;
+  lonDecimal =
+    coordenadas.longitud.direccion === "O" ? -lonDecimal : lonDecimal;
+
+  return { latitud: latDecimal, longitud: lonDecimal };
+};
+
+/**
+ * Convierte unas coordenadas WKT a formato de formulario sexagesimal
+ * @param wkt String con coordenadas en formato WKT
+ * @returns Objeto con coordenadas en formato sexagesimal para el formulario
+ */
+export const wktToFormSexagesimal = (
+  wkt: string | null
+): {
+  latitud: {
+    grados: number;
+    minutos: number;
+    segundos: number;
+    direccion: "N" | "S";
+  };
+  longitud: {
+    grados: number;
+    minutos: number;
+    segundos: number;
+    direccion: "E" | "O";
+  };
+} | null => {
+  if (!wkt) return null;
+
+  // Convertir WKT a posición decimal
+  const decimalPos = parseWKTToDecimalPosition(wkt);
+  if (!decimalPos) return null;
+
+  // Convertir decimal a sexagesimal
+  const sexagesimal = positionDecimalToSexagesimal(decimalPos);
+
+  return {
+    latitud: {
+      grados: sexagesimal.latitud.grados,
+      minutos: sexagesimal.latitud.minutos,
+      segundos: sexagesimal.latitud.segundos,
+      direccion: sexagesimal.latitud.direccion as "N" | "S",
+    },
+    longitud: {
+      grados: sexagesimal.longitud.grados,
+      minutos: sexagesimal.longitud.minutos,
+      segundos: sexagesimal.longitud.segundos,
+      direccion: sexagesimal.longitud.direccion as "E" | "O",
+    },
+  };
+};
+
+/**
+ * Procesa coordenadas para el formulario de edición/creación de segmentos
+ * @param coordenadasDecimales Coordenadas del waypoint del segmento
+ * @returns Coordenadas en formato sexagesimal para el formulario
+ */
+export const procesarCoordenadasParaFormulario = (
+  coordenadasDecimales:
+    | Waypoint
+    | { latitud: number; longitud: number }
+    | null
+    | undefined
+): {
+  latitud: {
+    grados: number;
+    minutos: number;
+    segundos: number;
+    direccion: "N" | "S";
+  };
+  longitud: {
+    grados: number;
+    minutos: number;
+    segundos: number;
+    direccion: "E" | "O";
+  };
+} => {
+  if (!coordenadasDecimales) {
+    return {
+      latitud: {
+        grados: 0,
+        minutos: 0,
+        segundos: 0,
+        direccion: "S" as const,
+      },
+      longitud: {
+        grados: 0,
+        minutos: 0,
+        segundos: 0,
+        direccion: "O" as const,
+      },
+    };
+  }
+
+  const sexagesimal = positionDecimalToSexagesimal(coordenadasDecimales);
+
+  return {
+    latitud: {
+      grados: sexagesimal.latitud.grados,
+      minutos: sexagesimal.latitud.minutos,
+      segundos: sexagesimal.latitud.segundos,
+      direccion: sexagesimal.latitud.direccion as "N" | "S",
+    },
+    longitud: {
+      grados: sexagesimal.longitud.grados,
+      minutos: sexagesimal.longitud.minutos,
+      segundos: sexagesimal.longitud.segundos,
+      direccion: sexagesimal.longitud.direccion as "E" | "O",
+    },
+  };
+};
 
 export const decimalPositionToWKT = (pos: DecimalPosition): string =>
   `SRID=4326;POINT(${pos.longitud} ${pos.latitud})`;

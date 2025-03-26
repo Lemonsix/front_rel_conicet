@@ -36,9 +36,10 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 import {
-  decimalToSexagesimal,
-  calcularDistanciaHaversine,
+  procesarCoordenadasParaFormulario,
+  formSexagesimalToDecimal,
   decimalPositionToWKT,
+  calcularDistanciaHaversine,
 } from "@/lib/utils/coordinates";
 
 // Definir el esquema de validación
@@ -101,122 +102,13 @@ export function EditarSegmentoForm({
   const [sustratos, setSustratos] = useState<Sustrato[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Convertir las coordenadas del segmento a minutos y segundos
-  const coordenadasInicio = segmento.coordenadasInicio
-    ? {
-        latitud: {
-          grados: decimalToSexagesimal(
-            segmento.coordenadasInicio.latitud,
-            "latitud"
-          ).grados,
-          minutos: decimalToSexagesimal(
-            segmento.coordenadasInicio.latitud,
-            "latitud"
-          ).minutos,
-          segundos: decimalToSexagesimal(
-            segmento.coordenadasInicio.latitud,
-            "latitud"
-          ).segundos,
-          direccion: (decimalToSexagesimal(
-            segmento.coordenadasInicio.latitud,
-            "latitud"
-          ).direccion === "N"
-            ? "N"
-            : "S") as "N" | "S",
-        },
-        longitud: {
-          grados: decimalToSexagesimal(
-            segmento.coordenadasInicio.longitud,
-            "longitud"
-          ).grados,
-          minutos: decimalToSexagesimal(
-            segmento.coordenadasInicio.longitud,
-            "longitud"
-          ).minutos,
-          segundos: decimalToSexagesimal(
-            segmento.coordenadasInicio.longitud,
-            "longitud"
-          ).segundos,
-          direccion: (decimalToSexagesimal(
-            segmento.coordenadasInicio.longitud,
-            "longitud"
-          ).direccion === "E"
-            ? "E"
-            : "O") as "E" | "O",
-        },
-      }
-    : {
-        latitud: {
-          grados: 0,
-          minutos: 0,
-          segundos: 0,
-          direccion: "S" as const,
-        },
-        longitud: {
-          grados: 0,
-          minutos: 0,
-          segundos: 0,
-          direccion: "O" as const,
-        },
-      };
-
-  const coordenadasFin = segmento.coordenadasFin
-    ? {
-        latitud: {
-          grados: decimalToSexagesimal(
-            segmento.coordenadasFin.latitud,
-            "latitud"
-          ).grados,
-          minutos: decimalToSexagesimal(
-            segmento.coordenadasFin.latitud,
-            "latitud"
-          ).minutos,
-          segundos: decimalToSexagesimal(
-            segmento.coordenadasFin.latitud,
-            "latitud"
-          ).segundos,
-          direccion: (decimalToSexagesimal(
-            segmento.coordenadasFin.latitud,
-            "latitud"
-          ).direccion === "N"
-            ? "N"
-            : "S") as "N" | "S",
-        },
-        longitud: {
-          grados: decimalToSexagesimal(
-            segmento.coordenadasFin.longitud,
-            "longitud"
-          ).grados,
-          minutos: decimalToSexagesimal(
-            segmento.coordenadasFin.longitud,
-            "longitud"
-          ).minutos,
-          segundos: decimalToSexagesimal(
-            segmento.coordenadasFin.longitud,
-            "longitud"
-          ).segundos,
-          direccion: (decimalToSexagesimal(
-            segmento.coordenadasFin.longitud,
-            "longitud"
-          ).direccion === "E"
-            ? "E"
-            : "O") as "E" | "O",
-        },
-      }
-    : {
-        latitud: {
-          grados: 0,
-          minutos: 0,
-          segundos: 0,
-          direccion: "S" as const,
-        },
-        longitud: {
-          grados: 0,
-          minutos: 0,
-          segundos: 0,
-          direccion: "O" as const,
-        },
-      };
+  // Convertir las coordenadas del segmento a formato sexagesimal para el formulario
+  const coordenadasInicio = procesarCoordenadasParaFormulario(
+    segmento.coordenadasInicio
+  );
+  const coordenadasFin = procesarCoordenadasParaFormulario(
+    segmento.coordenadasFin
+  );
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -260,63 +152,22 @@ export function EditarSegmentoForm({
   const onSubmit = async (values: FormValues) => {
     setLoading(true);
     try {
-      // Convertir coordenadas sexagesimales a decimales para punto final
-      const latGrados = values.coordenadas_fin.latitud.grados;
-      const latMinutos = values.coordenadas_fin.latitud.minutos;
-      const latSegundos = values.coordenadas_fin.latitud.segundos;
-      const latDireccion = values.coordenadas_fin.latitud.direccion;
-
-      const lonGrados = values.coordenadas_fin.longitud.grados;
-      const lonMinutos = values.coordenadas_fin.longitud.minutos;
-      const lonSegundos = values.coordenadas_fin.longitud.segundos;
-      const lonDireccion = values.coordenadas_fin.longitud.direccion;
-
-      // Convertir a decimales
-      let latDecimal = latGrados + latMinutos / 60 + latSegundos / 3600;
-      latDecimal = latDireccion === "S" ? -latDecimal : latDecimal;
-
-      let lonDecimal = lonGrados + lonMinutos / 60 + lonSegundos / 3600;
-      lonDecimal = lonDireccion === "O" ? -lonDecimal : lonDecimal;
-
-      // Convertir coordenadas sexagesimales a decimales para punto inicial
-      const latInicioGrados = values.coordenadas_inicio.latitud.grados;
-      const latInicioMinutos = values.coordenadas_inicio.latitud.minutos;
-      const latInicioSegundos = values.coordenadas_inicio.latitud.segundos;
-      const latInicioDireccion = values.coordenadas_inicio.latitud.direccion;
-
-      const lonInicioGrados = values.coordenadas_inicio.longitud.grados;
-      const lonInicioMinutos = values.coordenadas_inicio.longitud.minutos;
-      const lonInicioSegundos = values.coordenadas_inicio.longitud.segundos;
-      const lonInicioDireccion = values.coordenadas_inicio.longitud.direccion;
-
-      // Convertir a decimales
-      let latInicioDecimal =
-        latInicioGrados + latInicioMinutos / 60 + latInicioSegundos / 3600;
-      latInicioDecimal =
-        latInicioDireccion === "S" ? -latInicioDecimal : latInicioDecimal;
-
-      let lonInicioDecimal =
-        lonInicioGrados + lonInicioMinutos / 60 + lonInicioSegundos / 3600;
-      lonInicioDecimal =
-        lonInicioDireccion === "O" ? -lonInicioDecimal : lonInicioDecimal;
+      // Convertir coordenadas utilizando la nueva función auxiliar
+      const coordInicioDecimal = formSexagesimalToDecimal(
+        values.coordenadas_inicio
+      );
+      const coordFinDecimal = formSexagesimalToDecimal(values.coordenadas_fin);
 
       // Crear el punto WKT para las coordenadas de fin e inicio
-      const wktPointFin = decimalPositionToWKT({
-        latitud: latDecimal,
-        longitud: lonDecimal,
-      });
-
-      const wktPointInicio = decimalPositionToWKT({
-        latitud: latInicioDecimal,
-        longitud: lonInicioDecimal,
-      });
+      const wktPointInicio = decimalPositionToWKT(coordInicioDecimal);
+      const wktPointFin = decimalPositionToWKT(coordFinDecimal);
 
       // Calcular el largo entre los puntos de inicio y fin
-      const largo = await calcularDistanciaHaversine(
-        latInicioDecimal,
-        lonInicioDecimal,
-        latDecimal,
-        lonDecimal
+      const largo = calcularDistanciaHaversine(
+        coordInicioDecimal.latitud,
+        coordInicioDecimal.longitud,
+        coordFinDecimal.latitud,
+        coordFinDecimal.longitud
       );
 
       await updateSegmentoAction({
@@ -428,6 +279,7 @@ export function EditarSegmentoForm({
                             <FormControl>
                               <Input
                                 type="number"
+                                readOnly
                                 className="w-20 text-center "
                                 {...field}
                                 onChange={(e) =>
