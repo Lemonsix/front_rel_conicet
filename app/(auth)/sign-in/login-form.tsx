@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, signInWithGoogle } from "./actions";
+import { useAuth } from "@/hooks/use-auth";
 
 export function LoginForm({
   className,
@@ -21,6 +22,7 @@ export function LoginForm({
 }: React.ComponentPropsWithoutRef<"div">) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,7 +34,21 @@ export function LoginForm({
     if (searchParams.get("message") === "password-updated") {
       setMessage("¡Contraseña actualizada! Ya puedes iniciar sesión");
     }
+
+    // Limpiar atributos problemáticos después de la hidratación
+    const emailInput = document.getElementById("email") as HTMLInputElement;
+    if (emailInput) {
+      emailInput.removeAttribute("data-temp-mail-org");
+      emailInput.removeAttribute("style");
+    }
   }, [searchParams]);
+
+  useEffect(() => {
+    // Si el usuario está autenticado, redirigir a /campanias
+    if (user && !authLoading) {
+      router.push("/campanias");
+    }
+  }, [user, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,10 +62,6 @@ export function LoginForm({
         setError(result.error);
         return;
       }
-
-      // Esperamos un momento para que la sesión se establezca correctamente
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      router.push("/campanias");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al iniciar sesión");
     } finally {
