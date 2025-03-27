@@ -37,6 +37,7 @@ import { toast } from "sonner";
 import * as z from "zod";
 import { Coordenada } from "@/lib/types/coordenadas";
 import { calcularDistanciaHaversine } from "@/lib/utils/coordinates";
+import { Label } from "@radix-ui/react-label";
 
 // Definimos los tipos para el formulario
 type FormLatitud = {
@@ -287,7 +288,7 @@ export function EditarSegmentoForm({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="min-w-fit">
         <DialogHeader>
           <DialogTitle>Editar Segmento</DialogTitle>
         </DialogHeader>
@@ -445,6 +446,9 @@ export function EditarSegmentoForm({
                                   <SelectValue placeholder="Dir" />
                                 </SelectTrigger>
                               </FormControl>
+                              <FormDescription className="text-center">
+                                dir
+                              </FormDescription>
                               <SelectContent>
                                 <SelectItem value="N">N</SelectItem>
                                 <SelectItem value="S">S</SelectItem>
@@ -546,6 +550,9 @@ export function EditarSegmentoForm({
                                   <SelectValue placeholder="Dir" />
                                 </SelectTrigger>
                               </FormControl>
+                              <FormDescription className="text-center">
+                                dir
+                              </FormDescription>
                               <SelectContent>
                                 <SelectItem value="E">E</SelectItem>
                                 <SelectItem value="O">O</SelectItem>
@@ -559,7 +566,7 @@ export function EditarSegmentoForm({
                 </div>
 
                 {/* Profundidad Inicial */}
-                <div className="flex flex-col justify-center">
+                <div className="flex flex-col justify-center max-w-fit">
                   <FormField
                     control={form.control}
                     name="profundidad_inicial"
@@ -684,6 +691,9 @@ export function EditarSegmentoForm({
                                   <SelectValue placeholder="Dir" />
                                 </SelectTrigger>
                               </FormControl>
+                              <FormDescription className="text-center">
+                                dir
+                              </FormDescription>
                               <SelectContent>
                                 <SelectItem value="N">N</SelectItem>
                                 <SelectItem value="S">S</SelectItem>
@@ -785,6 +795,9 @@ export function EditarSegmentoForm({
                                   <SelectValue placeholder="Dir" />
                                 </SelectTrigger>
                               </FormControl>
+                              <FormDescription className="text-center">
+                                dir
+                              </FormDescription>
                               <SelectContent>
                                 <SelectItem value="E">E</SelectItem>
                                 <SelectItem value="O">O</SelectItem>
@@ -798,7 +811,7 @@ export function EditarSegmentoForm({
                 </div>
 
                 {/* Profundidad Final */}
-                <div className="flex flex-col justify-center">
+                <div className="flex flex-col justify-center max-w-fit">
                   <FormField
                     control={form.control}
                     name="profundidad_final"
