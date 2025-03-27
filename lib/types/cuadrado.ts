@@ -1,9 +1,11 @@
+import { Coordenada } from "./coordenadas";
+
 export interface Cuadrado {
   id: number;
   segmentoId: number;
   replica: number;
-  coordenadasInicio: string;
-  coordenadasFin: string;
+  coordenadasInicio: Coordenada;
+  coordenadasFin: Coordenada;
   profundidadInicio: string;
   profundidadFin: string;
   tieneMuestreo: boolean;

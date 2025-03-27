@@ -33,12 +33,10 @@ import {
 } from "@/lib/actions/segmentos";
 import { Segmento } from "@/lib/types/segmento";
 import { Sustrato } from "@/lib/types/sustrato";
+import { Coordenada } from "@/lib/types/coordenadas";
 import {
-  decimalPositionToWKT,
-  positionSexagesimalToDecimal,
   calcularDistanciaHaversine,
-  formatCoordinates,
-  parseWKTToDecimalPosition,
+  aseguraCoordenada,
 } from "@/lib/utils/coordinates";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
@@ -46,11 +44,57 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
+// Definimos los tipos para el formulario
+type FormLatitud = {
+  grados: number;
+  minutos: number;
+  segundos: number;
+  direccion: "N" | "S";
+};
+
+type FormLongitud = {
+  grados: number;
+  minutos: number;
+  segundos: number;
+  direccion: "E" | "O";
+};
+
+type FormCoordenadasSexagesimales = {
+  latitud: FormLatitud;
+  longitud: FormLongitud;
+};
+
 // Definir el esquema de validación
 const formSchema = z.object({
   numero: z.number().min(1),
-  coordenadas_inicio: z.any(),
-  coordenadas_fin: z.any(),
+  coordenadas_inicio: z.object({
+    latitud: z.object({
+      grados: z.number().min(0).max(90),
+      minutos: z.number().min(0).max(59),
+      segundos: z.number().min(0).max(59.99),
+      direccion: z.enum(["N", "S"]),
+    }),
+    longitud: z.object({
+      grados: z.number().min(0).max(180),
+      minutos: z.number().min(0).max(59),
+      segundos: z.number().min(0).max(59.99),
+      direccion: z.enum(["E", "O"]),
+    }),
+  }),
+  coordenadas_fin: z.object({
+    latitud: z.object({
+      grados: z.number().min(0).max(90),
+      minutos: z.number().min(0).max(59),
+      segundos: z.number().min(0).max(59.99),
+      direccion: z.enum(["N", "S"]),
+    }),
+    longitud: z.object({
+      grados: z.number().min(0).max(180),
+      minutos: z.number().min(0).max(59),
+      segundos: z.number().min(0).max(59.99),
+      direccion: z.enum(["E", "O"]),
+    }),
+  }),
   profundidad_final: z.number().min(0),
   profundidad_inicial: z.number().min(0).optional(),
   conteo: z.number().min(0),
@@ -147,40 +191,46 @@ export function NuevoSegmentoForm({
         setUltimoSegmento(result.data);
         // Preseleccionar el número siguiente
         form.setValue("numero", result.data.numero + 1);
+
         // Preseleccionar las coordenadas de inicio con las de fin del segmento anterior
-        form.setValue("coordenadas_inicio", {
-          latitud: {
-            grados: Math.abs(
-              Math.floor(result.data.coordenadasFin?.latitud || 0)
-            ),
-            minutos: Math.floor(
-              (Math.abs(result.data.coordenadasFin?.latitud || 0) % 1) * 60
-            ),
-            segundos: Math.floor(
-              (((Math.abs(result.data.coordenadasFin?.latitud || 0) % 1) * 60) %
-                1) *
-                60
-            ),
-            direccion:
-              (result.data.coordenadasFin?.latitud || 0) >= 0 ? "N" : "S",
-          },
-          longitud: {
-            grados: Math.abs(
-              Math.floor(result.data.coordenadasFin?.longitud || 0)
-            ),
-            minutos: Math.floor(
-              (Math.abs(result.data.coordenadasFin?.longitud || 0) % 1) * 60
-            ),
-            segundos: Math.floor(
-              (((Math.abs(result.data.coordenadasFin?.longitud || 0) % 1) *
-                60) %
-                1) *
-                60
-            ),
-            direccion:
-              (result.data.coordenadasFin?.longitud || 0) >= 0 ? "E" : "O",
-          },
-        });
+        if (result.data.coordenadasFin) {
+          try {
+            const coordObj = result.data.coordenadasFin;
+            console.log("Coordenadas finales del último segmento:", coordObj);
+
+            // Si es un objeto serializado, usar directamente sexagesimal
+            if (coordObj.sexagesimal) {
+              const sexagesimal = coordObj.sexagesimal;
+              console.log("Usando valores sexagesimales:", sexagesimal);
+
+              if (sexagesimal.latitud && sexagesimal.longitud) {
+                form.setValue("coordenadas_inicio", {
+                  latitud: {
+                    grados: sexagesimal.latitud.grados,
+                    minutos: sexagesimal.latitud.minutos,
+                    segundos: sexagesimal.latitud.segundos,
+                    direccion: sexagesimal.latitud.direccion as "N" | "S",
+                  },
+                  longitud: {
+                    grados: sexagesimal.longitud.grados,
+                    minutos: sexagesimal.longitud.minutos,
+                    segundos: sexagesimal.longitud.segundos,
+                    direccion: sexagesimal.longitud.direccion as "E" | "O",
+                  },
+                });
+              } else {
+                console.error("Formato de coordenadas inválido");
+              }
+            } else {
+              console.error(
+                "Las coordenadas no están en formato serializado esperado"
+              );
+            }
+          } catch (error) {
+            console.error("Error al procesar coordenadas:", error);
+          }
+        }
+
         // Preseleccionar la profundidad inicial con la profundidad final del segmento anterior
         form.setValue("profundidad_inicial", result.data.profundidadFinal || 0);
       }
@@ -209,27 +259,77 @@ export function NuevoSegmentoForm({
 
     setLoading(true);
     try {
-      const inicioDecimal = esPrimerSegmento
-        ? positionSexagesimalToDecimal(values.coordenadas_inicio)
-        : {
-            latitud: ultimoSegmento?.coordenadasFin?.latitud ?? 0,
-            longitud: ultimoSegmento?.coordenadasFin?.longitud ?? 0,
-          };
+      // Crear coordenadas de inicio
+      let coordenadaInicio: Coordenada;
+      if (esPrimerSegmento) {
+        // Usar valores del formulario si es el primer segmento
+        coordenadaInicio = Coordenada.fromSexagesimal({
+          latitud: {
+            grados: values.coordenadas_inicio.latitud.grados,
+            minutos: values.coordenadas_inicio.latitud.minutos,
+            segundos: values.coordenadas_inicio.latitud.segundos,
+            direccion: values.coordenadas_inicio.latitud.direccion,
+          },
+          longitud: {
+            grados: values.coordenadas_inicio.longitud.grados,
+            minutos: values.coordenadas_inicio.longitud.minutos,
+            segundos: values.coordenadas_inicio.longitud.segundos,
+            direccion: values.coordenadas_inicio.longitud.direccion,
+          },
+        });
+      } else {
+        // Usar las coordenadas finales del último segmento, que ahora son serializadas
+        if (ultimoSegmento?.coordenadasFin?.wkb) {
+          // Si tenemos WKB, lo usamos para crear la coordenada
+          const wkb = ultimoSegmento.coordenadasFin.wkb;
+          const coordObj = Coordenada.fromWKT(wkb);
+          coordenadaInicio = coordObj || Coordenada.fromDecimal(0, 0);
+        } else if (ultimoSegmento?.coordenadasFin?.decimal) {
+          // Si tenemos decimal, lo usamos
+          const decimal = ultimoSegmento.coordenadasFin.decimal;
+          coordenadaInicio = Coordenada.fromDecimal(
+            decimal.latitud,
+            decimal.longitud
+          );
+        } else {
+          // Fallback
+          coordenadaInicio = Coordenada.fromDecimal(0, 0);
+        }
+      }
 
-      const finDecimal = positionSexagesimalToDecimal(values.coordenadas_fin);
+      // Crear coordenadas de fin
+      const coordenadaFin = Coordenada.fromSexagesimal({
+        latitud: {
+          grados: values.coordenadas_fin.latitud.grados,
+          minutos: values.coordenadas_fin.latitud.minutos,
+          segundos: values.coordenadas_fin.latitud.segundos,
+          direccion: values.coordenadas_fin.latitud.direccion,
+        },
+        longitud: {
+          grados: values.coordenadas_fin.longitud.grados,
+          minutos: values.coordenadas_fin.longitud.minutos,
+          segundos: values.coordenadas_fin.longitud.segundos,
+          direccion: values.coordenadas_fin.longitud.direccion,
+        },
+      });
 
-      const largo = await calcularDistanciaHaversine(
-        inicioDecimal.latitud,
-        inicioDecimal.longitud,
-        finDecimal.latitud,
-        finDecimal.longitud
+      // Obtener valores decimales para calcular la distancia
+      const coordInicioDecimal = coordenadaInicio.decimal;
+      const coordFinDecimal = coordenadaFin.decimal;
+
+      // Calcular el largo entre los puntos de inicio y fin
+      const largo = calcularDistanciaHaversine(
+        coordInicioDecimal.latitud,
+        coordInicioDecimal.longitud,
+        coordFinDecimal.latitud,
+        coordFinDecimal.longitud
       );
 
       const result = await createSegmentoAction({
         transecta_id: transectaId,
         numero: values.numero,
-        coordenadas_inicio: decimalPositionToWKT(inicioDecimal),
-        coordenadas_fin: decimalPositionToWKT(finDecimal),
+        coordenadas_inicio: coordenadaInicio.wkb,
+        coordenadas_fin: coordenadaFin.wkb,
         profundidad_final: values.profundidad_final,
         profundidad_inicial: esPrimerSegmento
           ? values.profundidad_inicial
@@ -255,6 +355,40 @@ export function NuevoSegmentoForm({
     }
   };
   console.log(ultimoSegmento);
+
+  // Función auxiliar para formatear coordenadas para mostrar
+  function formatearCoordenadas(coord: any): string {
+    try {
+      if (!coord) return "Coordenadas no disponibles";
+
+      // Si es un objeto serializado, usar directamente sus propiedades
+      if (coord.sexagesimal) {
+        const sexagesimal = coord.sexagesimal;
+        if (!sexagesimal.latitud || !sexagesimal.longitud) {
+          return "Formato de coordenadas inválido";
+        }
+
+        return `${sexagesimal.latitud.grados}° ${sexagesimal.latitud.minutos}' ${sexagesimal.latitud.segundos}" ${sexagesimal.latitud.direccion}, 
+              ${sexagesimal.longitud.grados}° ${sexagesimal.longitud.minutos}' ${sexagesimal.longitud.segundos}" ${sexagesimal.longitud.direccion}`;
+      }
+
+      // Si es un objeto Coordenada, intentar obtener sexagesimal
+      if (typeof coord === "object" && "sexagesimal" in coord) {
+        return formatearCoordenadas(coord.sexagesimal);
+      }
+
+      // Intentar convertir a Coordenada si es una cadena
+      if (typeof coord === "string") {
+        const coordObj = aseguraCoordenada(coord);
+        return formatearCoordenadas(coordObj);
+      }
+
+      return "Formato de coordenadas desconocido";
+    } catch (error) {
+      console.error("Error al formatear coordenadas:", error);
+      return "Error al formatear coordenadas";
+    }
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -528,17 +662,9 @@ export function NuevoSegmentoForm({
                     </div>
                     <div className="font-mono">
                       {ultimoSegmento?.coordenadasFin && (
-                        <>
-                          {(() => {
-                            const coords = ultimoSegmento.coordenadasFin;
-                            if (!coords) return "Error al parsear coordenadas";
-                            return `${formatCoordinates(coords.latitud, 0)} ${
-                              coords.latitud >= 0 ? "N" : "S"
-                            }, ${formatCoordinates(0, coords.longitud)} ${
-                              coords.longitud >= 0 ? "E" : "O"
-                            }`;
-                          })()}
-                        </>
+                        <span>
+                          {formatearCoordenadas(ultimoSegmento.coordenadasFin)}
+                        </span>
                       )}
                     </div>
                   </div>

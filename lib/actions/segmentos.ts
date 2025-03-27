@@ -4,6 +4,9 @@ import { createClient } from "@/lib/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { Segmento } from "../types/segmento";
 import { Tables, TablesInsert, TablesUpdate } from "@/lib/types/database.types";
+import { Coordenada } from "../types/coordenadas";
+import { mapSegmento, mapSegmentos } from "../mappers/segmentos";
+import { serializaCoordenada } from "../utils/coordinates";
 
 export async function createSegmentoAction(
   formData: Omit<
@@ -105,24 +108,15 @@ export async function getUltimoSegmentoAction(
     return { data: null, error: null };
   }
 
-  // Mapear los datos de Tables<'segmentos'> a Segmento
-  const segmento: Segmento = {
-    id: data.id,
-    transectaId: data.transecta_id,
-    numero: data.numero,
-    coordenadasInicio: data.coordenadas_inicio,
-    coordenadasFin: data.coordenadas_fin,
-    profundidadInicial: data.profundidad_inicial,
-    profundidadFinal: data.profundidad_final,
-    sustrato: {
-      id: data.sustrato_id,
-      codigo: "",
-      descripcion: "",
-    },
-    estMinima: data.est_minima,
-    conteo: data.conteo,
-    largo: data.largo,
+  // Completar el objeto con los campos faltantes requeridos por el mapper
+  const segmentoCompleto = {
+    ...data,
+    tiene_marisqueo: null,
+    tiene_cuadrados: null,
   };
+
+  // Mapear los datos usando el mapper
+  const segmento = mapSegmento(segmentoCompleto);
 
   return { data: segmento, error: null };
 }
@@ -216,7 +210,31 @@ export async function getSegmentosByTransectaAction(
       sustrato: sustratosMap.get(segmento.sustrato_id) || null,
     }));
 
-    return { data: segmentosConSustratos, error: null };
+    // Para mantener la misma estructura que antes, pero asegurando que los objetos
+    // sean mapeados correctamente para las coordenadas, haremos una conversión manual
+    const segmentosMapeados = segmentosConSustratos.map((segmento) => {
+      // Primero convertimos a objetos Coordenada
+      const coordInicio = segmento.coordenadas_inicio
+        ? Coordenada.fromWKT(String(segmento.coordenadas_inicio))
+        : null;
+
+      const coordFin = segmento.coordenadas_fin
+        ? Coordenada.fromWKT(String(segmento.coordenadas_fin))
+        : null;
+
+      // Luego serializamos para transferencia segura cliente-servidor
+      const coordenadasInicio = serializaCoordenada(coordInicio);
+      const coordenadasFin = serializaCoordenada(coordFin);
+
+      // Devolvemos el objeto con las coordenadas convertidas
+      return {
+        ...segmento,
+        coordenadasInicio,
+        coordenadasFin,
+      };
+    });
+
+    return { data: segmentosMapeados, error: null };
   } catch (error) {
     console.error("Error inesperado:", error);
     return { data: [], error: String(error) };

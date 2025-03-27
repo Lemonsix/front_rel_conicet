@@ -4,18 +4,16 @@ import { TransectaMap } from "@/components/map/transecta-map";
 import { TransectasAccordion } from "@/components/transectas/transectas-accordion";
 import { getEmbarcacionesAction } from "@/lib/actions/embarcaciones";
 import { getPersonasByRolAction } from "@/lib/actions/personas";
-import { getTransectasByCampaniaAction } from "@/lib/actions/transectas";
-import { mapTransectas } from "@/lib/mappers/transecta";
+import { getSegmentosByTransectaAction } from "@/lib/actions/segmentos";
+import { mapSegmentos } from "@/lib/mappers/segmentos";
 import { Campania } from "@/lib/types/campania";
 import { Embarcacion } from "@/lib/types/embarcacion";
 import { Persona } from "@/lib/types/persona";
+import { Segmento } from "@/lib/types/segmento";
 import { Transecta } from "@/lib/types/transecta";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { TransectaModal } from "../transectas/transecta-modal";
-import { getSegmentosByTransectaAction } from "@/lib/actions/segmentos";
-import { mapSegmentos } from "@/lib/mappers/segmentos";
-import { Segmento } from "@/lib/types/segmento";
 
 interface CampaniaViewProps {
   campania: Campania;

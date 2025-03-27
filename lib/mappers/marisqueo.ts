@@ -1,9 +1,6 @@
 import { Marisqueo } from "../types/marisqueo";
 import { Tables } from "@/lib/types/database.types";
-import {
-  parseGeoJSONToCoordinates,
-  wktHexToGeoJSON,
-} from "../utils/coordinates";
+import { Coordenada } from "../types/coordenadas";
 
 // Extendemos el tipo para incluir el resultado del join con buzo
 type MarisqueoWithBuzo = Tables<"marisqueos"> & {
@@ -20,18 +17,28 @@ export function mapMarisqueo(marisqueoDb: MarisqueoWithBuzo): Marisqueo {
     ? String(marisqueoDb.coordenadas)
     : "";
 
-  const geoJSON = coordStr.includes('"type":"Point"')
-    ? coordStr
-    : wktHexToGeoJSON(coordStr);
+  // Intentar crear coordenadas desde los diferentes formatos posibles
+  let coordenadas: Coordenada | null = null;
 
-  const coordenadas = parseGeoJSONToCoordinates(geoJSON);
+  // Si es GeoJSON
+  if (coordStr.includes('"type":"Point"')) {
+    coordenadas = Coordenada.fromGeoJSON(coordStr);
+  }
+  // Si es WKB
+  else if (coordStr.startsWith("0101000020E6100000")) {
+    coordenadas = Coordenada.fromWKBHex(coordStr);
+  }
+  // Si es WKT
+  else if (coordStr.startsWith("SRID=4326;POINT")) {
+    coordenadas = Coordenada.fromWKT(coordStr);
+  }
 
   return {
     id: marisqueoDb.id,
     segmentoId: marisqueoDb.segmento_id,
     timestamp: marisqueoDb.timestamp || new Date().toISOString(),
     tiempo: marisqueoDb.tiempo || 0,
-    coordenadas: coordenadas ? JSON.stringify(coordenadas) : "",
+    coordenadas: coordenadas || Coordenada.fromDecimal(0, 0),
     tieneMuestreo: marisqueoDb.tiene_muestreo === true,
     buzoId: marisqueoDb.buzo_id,
     nCaptura: marisqueoDb.n_captura,

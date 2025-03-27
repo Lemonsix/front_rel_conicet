@@ -1,8 +1,7 @@
-import { Transecta } from "../types/transecta";
-import { Tables } from "@/lib/types/database.types";
-import { mapSegmento } from "./segmentos";
 import { Embarcacion } from "../types/embarcacion";
 import { Persona } from "../types/persona";
+import { Transecta } from "../types/transecta";
+import { mapSegmento } from "./segmentos";
 
 // Tipo extendido para representar el resultado del join complejo
 type TransectaWithRelations = {

@@ -90,21 +90,18 @@ export function Map({ segmentos }: MapProps) {
                   return null;
 
                 if (index === 0) {
-                  puntos.push([
-                    segmento.coordenadasInicio.latitud,
-                    segmento.coordenadasInicio.longitud,
-                  ]);
-                  puntos.push([
-                    segmento.coordenadasFin.latitud,
-                    segmento.coordenadasFin.longitud,
-                  ]);
+                  const inicioDecimal = segmento.coordenadasInicio.decimal;
+                  const finDecimal = segmento.coordenadasFin.decimal;
+
+                  puntos.push([inicioDecimal.latitud, inicioDecimal.longitud]);
+                  puntos.push([finDecimal.latitud, finDecimal.longitud]);
 
                   return (
                     <div key={segmento.id}>
                       <Marker
                         position={[
-                          segmento.coordenadasInicio.latitud,
-                          segmento.coordenadasInicio.longitud,
+                          inicioDecimal.latitud,
+                          inicioDecimal.longitud,
                         ]}
                         icon={icon}
                       >
@@ -113,18 +110,12 @@ export function Map({ segmentos }: MapProps) {
                             <h3 className="font-bold">
                               Segmento {segmento.numero} - Inicio
                             </h3>
-                            <p>
-                              Profundidad:{" "}
-                              {segmento.coordenadasInicio.profundidad}m
-                            </p>
+                            <p>Profundidad: {segmento.profundidadInicial}m</p>
                           </div>
                         </Popup>
                       </Marker>
                       <Marker
-                        position={[
-                          segmento.coordenadasFin.latitud,
-                          segmento.coordenadasFin.longitud,
-                        ]}
+                        position={[finDecimal.latitud, finDecimal.longitud]}
                         icon={icon}
                       >
                         <Popup>
@@ -134,8 +125,7 @@ export function Map({ segmentos }: MapProps) {
                             </h3>
                             <p className="flex flex-col">
                               <span>
-                                Profundidad:{" "}
-                                {segmento.coordenadasFin.profundidad}m
+                                Profundidad: {segmento.profundidadFinal}m
                               </span>
                               {segmento.conteo && (
                                 <span>Conteo: {segmento.conteo}</span>
@@ -148,18 +138,14 @@ export function Map({ segmentos }: MapProps) {
                   );
                 }
 
-                puntos.push([
-                  segmento.coordenadasFin.latitud,
-                  segmento.coordenadasFin.longitud,
-                ]);
+                const finDecimal = segmento.coordenadasFin.decimal;
+
+                puntos.push([finDecimal.latitud, finDecimal.longitud]);
 
                 return (
                   <Marker
                     key={segmento.id}
-                    position={[
-                      segmento.coordenadasFin.latitud,
-                      segmento.coordenadasFin.longitud,
-                    ]}
+                    position={[finDecimal.latitud, finDecimal.longitud]}
                     icon={icon}
                   >
                     <Popup>
@@ -168,9 +154,7 @@ export function Map({ segmentos }: MapProps) {
                           Segmento {segmento.numero} - Fin
                         </h3>
                         <p className="flex flex-col">
-                          <span>
-                            Profundidad: {segmento.coordenadasFin.profundidad}m
-                          </span>
+                          <span>Profundidad: {segmento.profundidadFinal}m</span>
                           {segmento.conteo && (
                             <span>Conteo: {segmento.conteo}</span>
                           )}

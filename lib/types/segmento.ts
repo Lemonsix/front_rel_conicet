@@ -1,6 +1,7 @@
 import { Cuadrado } from "./cuadrado";
 import { Marisqueo } from "./marisqueo";
 import { Sustrato } from "./sustrato";
+import { Coordenada } from "./coordenadas";
 
 export interface Segmento {
   id: number;
@@ -13,8 +14,10 @@ export interface Segmento {
   tieneMarisqueo?: boolean; // preferible boolean en lugar de bpchar
   tieneCuadrados?: boolean;
   estMinima: number;
-  coordenadasInicio?: Waypoint;
-  coordenadasFin?: Waypoint;
+  // IMPORTANTE: estas propiedades deben serializarse antes de pasarse entre componentes server y client
+  // Usar serializaCoordenada() de lib/utils/coordinates.ts
+  coordenadasInicio?: any; // Versión serializada de Coordenada
+  coordenadasFin?: any; // Versión serializada de Coordenada
   marisqueos?: Marisqueo[];
   cuadrados?: Cuadrado[];
   sustrato?: Sustrato;

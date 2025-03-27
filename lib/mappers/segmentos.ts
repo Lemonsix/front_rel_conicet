@@ -1,12 +1,9 @@
 import { Tables } from "@/lib/types/database.types";
 import { Segmento } from "../types/segmento";
-import {
-  parseGeoJSONToCoordinates,
-  parseWKTToCoordinates,
-  parseWKBHex,
-} from "../utils/coordinates";
+import { Coordenada } from "../types/coordenadas";
 import { mapCuadrado } from "./cuadrado";
 import { mapMarisqueo } from "./marisqueo";
+import { serializaCoordenada } from "../utils/coordinates";
 
 // Tipo extendido para representar el resultado del join complejo
 type SegmentoWithRelations = Tables<"segmentos"> & {
@@ -32,32 +29,32 @@ export function mapSegmento(segmentoDb: SegmentoWithRelations): Segmento {
   const profInicial = segmentoDb.profundidad_inicial ?? undefined;
   const profFinal = segmentoDb.profundidad_final ?? undefined;
 
-  // Intentar parsear como WKB Hex (formato PostGIS) primero
-  let coordenadasInicio = null;
-  let coordenadasFin = null;
+  // Intentar crear coordenadas desde los diferentes formatos posibles
+  let coordenadasInicio: Coordenada | null = null;
+  let coordenadasFin: Coordenada | null = null;
 
   // Para coordenadas inicio
   if (coordInicio && coordInicio.startsWith("0101000020E6100000")) {
     // Es formato WKB Hex de PostGIS
-    coordenadasInicio = parseWKBHex(coordInicio);
+    coordenadasInicio = Coordenada.fromWKBHex(coordInicio);
   } else if (coordInicio.includes('"type":"Point"')) {
     // Es formato GeoJSON
-    coordenadasInicio = parseGeoJSONToCoordinates(coordInicio, profInicial);
-  } else if (coordInicio) {
+    coordenadasInicio = Coordenada.fromGeoJSON(coordInicio);
+  } else if (coordInicio.startsWith("SRID=4326;POINT")) {
     // Intentar como WKT
-    coordenadasInicio = parseWKTToCoordinates(coordInicio, profInicial);
+    coordenadasInicio = Coordenada.fromWKT(coordInicio);
   }
 
   // Para coordenadas fin
   if (coordFin && coordFin.startsWith("0101000020E6100000")) {
     // Es formato WKB Hex de PostGIS
-    coordenadasFin = parseWKBHex(coordFin);
+    coordenadasFin = Coordenada.fromWKBHex(coordFin);
   } else if (coordFin.includes('"type":"Point"')) {
     // Es formato GeoJSON
-    coordenadasFin = parseGeoJSONToCoordinates(coordFin, profFinal);
-  } else if (coordFin) {
+    coordenadasFin = Coordenada.fromGeoJSON(coordFin);
+  } else if (coordFin.startsWith("SRID=4326;POINT")) {
     // Intentar como WKT
-    coordenadasFin = parseWKTToCoordinates(coordFin, profFinal);
+    coordenadasFin = Coordenada.fromWKT(coordFin);
   }
 
   // Si hay un sustrato en el join, lo mapeamos
@@ -76,21 +73,6 @@ export function mapSegmento(segmentoDb: SegmentoWithRelations): Segmento {
   // Convertir null a undefined para conteo
   const conteo = segmentoDb.conteo ?? undefined;
 
-  // Nos aseguramos que las coordenadas tengan las profundidades correctas
-  const coordInicioFinal = coordenadasInicio
-    ? {
-        ...coordenadasInicio,
-        profundidad: profInicial,
-      }
-    : { latitud: 0, longitud: 0, profundidad: profInicial };
-
-  const coordFinFinal = coordenadasFin
-    ? {
-        ...coordenadasFin,
-        profundidad: profFinal,
-      }
-    : { latitud: 0, longitud: 0, profundidad: profFinal };
-
   return {
     id: segmentoDb.id,
     transectaId: segmentoDb.transecta_id,
@@ -103,8 +85,12 @@ export function mapSegmento(segmentoDb: SegmentoWithRelations): Segmento {
     estMinima: segmentoDb.est_minima,
     tieneMarisqueo: segmentoDb.tiene_marisqueo === "SI",
     tieneCuadrados: segmentoDb.tiene_cuadrados === "SI",
-    coordenadasInicio: coordInicioFinal,
-    coordenadasFin: coordFinFinal,
+    coordenadasInicio: serializaCoordenada(
+      coordenadasInicio || Coordenada.fromDecimal(0, 0)
+    ),
+    coordenadasFin: serializaCoordenada(
+      coordenadasFin || Coordenada.fromDecimal(0, 0)
+    ),
     marisqueos: segmentoDb.marisqueos?.map(mapMarisqueo),
     cuadrados: segmentoDb.cuadrados?.map(mapCuadrado),
   };

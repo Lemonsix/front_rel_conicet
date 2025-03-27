@@ -11,10 +11,7 @@ import { Segmento } from "@/lib/types/segmento";
 import { ArrowDownFromLine, Pencil } from "lucide-react";
 import { useState, useEffect } from "react";
 import { EditarSegmentoForm } from "./editar-segmento-form";
-import {
-  calcularDistanciaHaversine,
-  formatCoordinates,
-} from "@/lib/utils/coordinates";
+import { calcularDistanciaHaversine } from "@/lib/utils/coordinates";
 
 interface SegmentosTableProps {
   segmentos: Segmento[];
@@ -34,11 +31,14 @@ export function SegmentosTable({
 
       for (const segmento of segmentos) {
         if (segmento.coordenadasInicio && segmento.coordenadasFin) {
+          const inicioDecimal = segmento.coordenadasInicio.decimal;
+          const finDecimal = segmento.coordenadasFin.decimal;
+
           const distancia = calcularDistanciaHaversine(
-            segmento.coordenadasInicio.latitud,
-            segmento.coordenadasInicio.longitud,
-            segmento.coordenadasFin.latitud,
-            segmento.coordenadasFin.longitud
+            inicioDecimal.latitud,
+            inicioDecimal.longitud,
+            finDecimal.latitud,
+            finDecimal.longitud
           );
           nuevasDistancias[segmento.id] = distancia;
         }
@@ -49,6 +49,27 @@ export function SegmentosTable({
 
     calcularDistancias();
   }, [segmentos]);
+
+  // Función para formatear coordenadas a formato texto
+  function formatCoordenada(coord: number, esLatitud: boolean): string {
+    if (coord === 0) return "";
+
+    const abs = Math.abs(coord);
+    const grados = Math.floor(abs);
+    const minutos = Math.floor((abs - grados) * 60);
+    const segundos =
+      Math.round(((abs - grados) * 60 - minutos) * 60 * 100) / 100;
+
+    const direccion = esLatitud
+      ? coord >= 0
+        ? "N"
+        : "S"
+      : coord >= 0
+      ? "E"
+      : "O";
+
+    return `${grados}° ${minutos}' ${segundos}" ${direccion}`;
+  }
 
   return (
     <>
@@ -83,19 +104,19 @@ export function SegmentosTable({
                 <div className="flex flex-col gap-1">
                   {segmento.coordenadasInicio ? (
                     <>
-                      {segmento.coordenadasInicio.latitud !== 0 ||
-                      segmento.coordenadasInicio.longitud !== 0 ? (
+                      {segmento.coordenadasInicio.decimal.latitud !== 0 ||
+                      segmento.coordenadasInicio.decimal.longitud !== 0 ? (
                         <>
                           <span className="text-xs">
-                            {formatCoordinates(
-                              segmento.coordenadasInicio.latitud,
-                              0
+                            {formatCoordenada(
+                              segmento.coordenadasInicio.decimal.latitud,
+                              true
                             )}
                           </span>
                           <span className="text-xs">
-                            {formatCoordinates(
-                              0,
-                              segmento.coordenadasInicio.longitud
+                            {formatCoordenada(
+                              segmento.coordenadasInicio.decimal.longitud,
+                              false
                             )}
                           </span>
                         </>
@@ -106,9 +127,9 @@ export function SegmentosTable({
                       )}
                       <span className="text-xs text-muted-foreground">
                         Prof:{" "}
-                        {segmento.coordenadasInicio.profundidad !== undefined
-                          ? segmento.coordenadasInicio.profundidad
-                          : segmento.profundidadInicial || 0}
+                        {segmento.profundidadInicial !== undefined
+                          ? segmento.profundidadInicial
+                          : 0}
                         m
                       </span>
                     </>
@@ -132,23 +153,23 @@ export function SegmentosTable({
                     <>
                       <div className="flex flex-col gap-0.5">
                         <span className="text-xs">
-                          {formatCoordinates(
-                            segmento.coordenadasFin.latitud,
-                            0
+                          {formatCoordenada(
+                            segmento.coordenadasFin.decimal.latitud,
+                            true
                           )}
                         </span>
                         <span className="text-xs">
-                          {formatCoordinates(
-                            0,
-                            segmento.coordenadasFin.longitud
+                          {formatCoordenada(
+                            segmento.coordenadasFin.decimal.longitud,
+                            false
                           )}
                         </span>
                       </div>
                       <span className="text-xs text-muted-foreground">
                         Prof:{" "}
-                        {segmento.coordenadasFin.profundidad !== undefined
-                          ? segmento.coordenadasFin.profundidad
-                          : segmento.profundidadFinal || 0}
+                        {segmento.profundidadFinal !== undefined
+                          ? segmento.profundidadFinal
+                          : 0}
                         m
                       </span>
                     </>

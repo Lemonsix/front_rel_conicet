@@ -35,12 +35,28 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
-import {
-  procesarCoordenadasParaFormulario,
-  formSexagesimalToDecimal,
-  decimalPositionToWKT,
-  calcularDistanciaHaversine,
-} from "@/lib/utils/coordinates";
+import { Coordenada } from "@/lib/types/coordenadas";
+import { calcularDistanciaHaversine } from "@/lib/utils/coordinates";
+
+// Definimos los tipos para el formulario
+type FormLatitud = {
+  grados: number;
+  minutos: number;
+  segundos: number;
+  direccion: "N" | "S";
+};
+
+type FormLongitud = {
+  grados: number;
+  minutos: number;
+  segundos: number;
+  direccion: "E" | "O";
+};
+
+type FormCoordenadasSexagesimales = {
+  latitud: FormLatitud;
+  longitud: FormLongitud;
+};
 
 // Definir el esquema de validación
 const formSchema = z.object({
@@ -102,11 +118,11 @@ export function EditarSegmentoForm({
   const [sustratos, setSustratos] = useState<Sustrato[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Convertir las coordenadas del segmento a formato sexagesimal para el formulario
-  const coordenadasInicio = procesarCoordenadasParaFormulario(
+  // Convertir coordenadas de Coordenada a formato del formulario
+  const coordenadasInicio = getFormSexagesimalFromCoordinate(
     segmento.coordenadasInicio
   );
-  const coordenadasFin = procesarCoordenadasParaFormulario(
+  const coordenadasFin = getFormSexagesimalFromCoordinate(
     segmento.coordenadasFin
   );
 
@@ -114,8 +130,8 @@ export function EditarSegmentoForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       numero: segmento.numero,
-      profundidad_final: segmento.coordenadasFin?.profundidad || 0,
-      profundidad_inicial: segmento.coordenadasInicio?.profundidad || 0,
+      profundidad_final: segmento.profundidadFinal || 0,
+      profundidad_inicial: segmento.profundidadInicial || 0,
       conteo: segmento.conteo || 0,
       sustratoId: segmento.sustrato?.id?.toString() || "",
       coordenadas_inicio: coordenadasInicio,
@@ -146,21 +162,47 @@ export function EditarSegmentoForm({
         toast.error("Error al cargar sustratos");
       }
     };
+
     fetchSustratos();
   }, [segmento.sustratoId, form]);
 
   const onSubmit = async (values: FormValues) => {
     setLoading(true);
     try {
-      // Convertir coordenadas utilizando la nueva función auxiliar
-      const coordInicioDecimal = formSexagesimalToDecimal(
-        values.coordenadas_inicio
-      );
-      const coordFinDecimal = formSexagesimalToDecimal(values.coordenadas_fin);
+      // Crear coordenadas utilizando la clase Coordenada
+      const coordenadaInicio = Coordenada.fromSexagesimal({
+        latitud: {
+          grados: values.coordenadas_inicio.latitud.grados,
+          minutos: values.coordenadas_inicio.latitud.minutos,
+          segundos: values.coordenadas_inicio.latitud.segundos,
+          direccion: values.coordenadas_inicio.latitud.direccion,
+        },
+        longitud: {
+          grados: values.coordenadas_inicio.longitud.grados,
+          minutos: values.coordenadas_inicio.longitud.minutos,
+          segundos: values.coordenadas_inicio.longitud.segundos,
+          direccion: values.coordenadas_inicio.longitud.direccion,
+        },
+      });
 
-      // Crear el punto WKT para las coordenadas de fin e inicio
-      const wktPointInicio = decimalPositionToWKT(coordInicioDecimal);
-      const wktPointFin = decimalPositionToWKT(coordFinDecimal);
+      const coordenadaFin = Coordenada.fromSexagesimal({
+        latitud: {
+          grados: values.coordenadas_fin.latitud.grados,
+          minutos: values.coordenadas_fin.latitud.minutos,
+          segundos: values.coordenadas_fin.latitud.segundos,
+          direccion: values.coordenadas_fin.latitud.direccion,
+        },
+        longitud: {
+          grados: values.coordenadas_fin.longitud.grados,
+          minutos: values.coordenadas_fin.longitud.minutos,
+          segundos: values.coordenadas_fin.longitud.segundos,
+          direccion: values.coordenadas_fin.longitud.direccion,
+        },
+      });
+
+      // Obtener valores decimales para calcular la distancia
+      const coordInicioDecimal = coordenadaInicio.decimal;
+      const coordFinDecimal = coordenadaFin.decimal;
 
       // Calcular el largo entre los puntos de inicio y fin
       const largo = calcularDistanciaHaversine(
@@ -174,8 +216,8 @@ export function EditarSegmentoForm({
         id: segmento.id,
         transecta_id: segmento.transectaId,
         numero: values.numero,
-        coordenadas_inicio: wktPointInicio,
-        coordenadas_fin: wktPointFin,
+        coordenadas_inicio: coordenadaInicio.wkb,
+        coordenadas_fin: coordenadaFin.wkb,
         profundidad_final: values.profundidad_final,
         profundidad_inicial: values.profundidad_inicial || 0,
         sustrato_id: parseInt(values.sustratoId),
@@ -198,6 +240,50 @@ export function EditarSegmentoForm({
       setLoading(false);
     }
   };
+
+  // Función auxiliar para convertir una coordenada a formato de formulario
+  function getFormSexagesimalFromCoordinate(
+    coord?: Coordenada | null
+  ): FormCoordenadasSexagesimales {
+    if (!coord) {
+      return getDefaultFormSexagesimal();
+    }
+
+    const sexagesimal = coord.sexagesimal;
+
+    return {
+      latitud: {
+        grados: sexagesimal.latitud.grados,
+        minutos: sexagesimal.latitud.minutos,
+        segundos: sexagesimal.latitud.segundos,
+        direccion: sexagesimal.latitud.direccion as "N" | "S", // Forzamos el tipo
+      },
+      longitud: {
+        grados: sexagesimal.longitud.grados,
+        minutos: sexagesimal.longitud.minutos,
+        segundos: sexagesimal.longitud.segundos,
+        direccion: sexagesimal.longitud.direccion as "E" | "O", // Forzamos el tipo
+      },
+    };
+  }
+
+  // Función auxiliar para crear coordenadas sexagesimales predeterminadas para el formulario
+  function getDefaultFormSexagesimal(): FormCoordenadasSexagesimales {
+    return {
+      latitud: {
+        grados: 0,
+        minutos: 0,
+        segundos: 0,
+        direccion: "S",
+      },
+      longitud: {
+        grados: 0,
+        minutos: 0,
+        segundos: 0,
+        direccion: "O",
+      },
+    };
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
