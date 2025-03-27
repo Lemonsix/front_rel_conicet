@@ -352,9 +352,9 @@ export function EditarSegmentoForm({
                 </FormLabel>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-24">
+              <div className="flex flex-col md:flex-row gap-6">
                 {/* Coordenadas de Inicio */}
-                <div className="space-y-4">
+                <div className="space-y-4 flex-1">
                   {/* Latitud Inicio */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex items-center gap-1">
@@ -566,7 +566,7 @@ export function EditarSegmentoForm({
                 </div>
 
                 {/* Profundidad Inicial */}
-                <div className="flex flex-col justify-center max-w-fit">
+                <div className="w-40">
                   <FormField
                     control={form.control}
                     name="profundidad_inicial"
@@ -576,8 +576,11 @@ export function EditarSegmentoForm({
                         <FormControl>
                           <Input
                             type="number"
-                            placeholder="Ingrese la profundidad inicial"
+                            placeholder="Profundidad"
                             {...field}
+                            onChange={(e) =>
+                              field.onChange(Number.parseFloat(e.target.value))
+                            }
                           />
                         </FormControl>
                         <FormDescription className="text-center">
@@ -598,9 +601,9 @@ export function EditarSegmentoForm({
                 </FormLabel>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-24">
+              <div className="flex flex-col md:flex-row gap-6">
                 {/* Coordenadas de Fin */}
-                <div className="space-y-4">
+                <div className="space-y-4 flex-1">
                   {/* Latitud Fin */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex items-center gap-1">
@@ -811,7 +814,7 @@ export function EditarSegmentoForm({
                 </div>
 
                 {/* Profundidad Final */}
-                <div className="flex flex-col justify-center max-w-fit">
+                <div className="w-40">
                   <FormField
                     control={form.control}
                     name="profundidad_final"
@@ -821,8 +824,11 @@ export function EditarSegmentoForm({
                         <FormControl>
                           <Input
                             type="number"
-                            placeholder="Ingrese la profundidad final"
+                            placeholder="Profundidad"
                             {...field}
+                            onChange={(e) =>
+                              field.onChange(Number.parseFloat(e.target.value))
+                            }
                           />
                         </FormControl>
                         <FormDescription className="text-center">
@@ -836,12 +842,12 @@ export function EditarSegmentoForm({
             </div>
 
             {/* Conteo */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col md:flex-row gap-4 justify-between">
               <FormField
                 control={form.control}
                 name="conteo"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex-1 max-w-xs">
                     <FormLabel>Conteo</FormLabel>
                     <FormControl>
                       <Input
@@ -855,7 +861,11 @@ export function EditarSegmentoForm({
                 )}
               />
               <div className="flex items-end">
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button
+                  type="submit"
+                  className="w-full md:w-40"
+                  disabled={loading}
+                >
                   {loading ? "Guardando..." : "Guardar"}
                 </Button>
               </div>
