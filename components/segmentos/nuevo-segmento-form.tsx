@@ -196,12 +196,10 @@ export function NuevoSegmentoForm({
         if (result.data.coordenadasFin) {
           try {
             const coordObj = result.data.coordenadasFin;
-            console.log("Coordenadas finales del último segmento:", coordObj);
 
             // Si es un objeto serializado, usar directamente sexagesimal
             if (coordObj.sexagesimal) {
               const sexagesimal = coordObj.sexagesimal;
-              console.log("Usando valores sexagesimales:", sexagesimal);
 
               if (sexagesimal.latitud && sexagesimal.longitud) {
                 form.setValue("coordenadas_inicio", {

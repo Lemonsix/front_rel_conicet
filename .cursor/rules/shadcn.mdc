@@ -5,3 +5,4 @@ alwaysApply: true
 ---
 # Reglas de Shadcn
 - No se pueden editar los componentes de Shadcn bajo ninguna circunstancia
+- Para instalar componentes se usa el siguiente comando "pnpm dlx shadcn@latest add tabs" donde "tabs" es el componente a agregar 

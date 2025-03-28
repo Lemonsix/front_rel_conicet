@@ -1,3 +1,4 @@
+"use server";
 import { CampaniaView } from "@/components/campanias/campania-view";
 import { getCampaniaByIdAction } from "@/lib/actions/campanias";
 import { mapCampania } from "@/lib/mappers/campania";
@@ -23,6 +24,5 @@ export default async function CampaniaPage({
 
   // Asignar las transectas a la campaña
   campania.transectas = transectas;
-
-  return <CampaniaView campania={campania} transectas={transectas} />;
+  return <CampaniaView campania={campania} />;
 }

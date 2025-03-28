@@ -140,8 +140,6 @@ export function EditarSegmentoForm({
     },
   });
 
-  console.log("segmento", segmento);
-
   useEffect(() => {
     const fetchSustratos = async () => {
       try {
