@@ -93,15 +93,19 @@ export function TransectaCard({
           <div className="text-sm text-muted-foreground">
             <MapPinIcon className="w-4 h-4 mr-2 inline" />
             Inicio:
-            <div className="ml-6 truncate">
-              {puntoInicioStr?.latitud.grados}°{" "}
-              {puntoInicioStr?.latitud.minutos}'{" "}
-              {puntoInicioStr?.latitud.segundos}"{" "}
-              {puntoInicioStr?.latitud.direccion}
-              {puntoInicioStr?.longitud.grados}°{" "}
-              {puntoInicioStr?.longitud.minutos}'{" "}
-              {puntoInicioStr?.longitud.segundos}"{" "}
-              {puntoInicioStr?.longitud.direccion}
+            <div className="ml-6 truncate space-x-2">
+              <span>
+                {puntoInicioStr?.latitud.grados}°{" "}
+                {puntoInicioStr?.latitud.minutos}'{" "}
+                {puntoInicioStr?.latitud.segundos}"{" "}
+                {puntoInicioStr?.latitud.direccion}
+              </span>
+              <span>
+                {puntoInicioStr?.longitud.grados}°{" "}
+                {puntoInicioStr?.longitud.minutos}'{" "}
+                {puntoInicioStr?.longitud.segundos}"{" "}
+                {puntoInicioStr?.longitud.direccion}
+              </span>
             </div>
             <ArrowDownFromLineIcon className="w-4 h-4 mr-2 inline" />
             Prof.: {transecta.profundidadInicial || "N/D"}m
@@ -110,12 +114,17 @@ export function TransectaCard({
           <div className="text-sm text-muted-foreground mt-2">
             <MapPinIcon className="w-4 h-4 mr-2 inline" />
             Fin:
-            <div className="ml-6 truncate">
-              {puntoFinStr?.latitud.grados}° {puntoFinStr?.latitud.minutos}'{" "}
-              {puntoFinStr?.latitud.segundos}" {puntoFinStr?.latitud.direccion}
-              {puntoFinStr?.longitud.grados}° {puntoFinStr?.longitud.minutos}'{" "}
-              {puntoFinStr?.longitud.segundos}"{" "}
-              {puntoFinStr?.longitud.direccion}
+            <div className="ml-6 truncate space-x-2">
+              <span>
+                {puntoFinStr?.latitud.grados}° {puntoFinStr?.latitud.minutos}'{" "}
+                {puntoFinStr?.latitud.segundos}"{" "}
+                {puntoFinStr?.latitud.direccion}
+              </span>
+              <span>
+                {puntoFinStr?.longitud.grados}° {puntoFinStr?.longitud.minutos}'{" "}
+                {puntoFinStr?.longitud.segundos}"{" "}
+                {puntoFinStr?.longitud.direccion}
+              </span>
             </div>
             <ArrowDownFromLineIcon className="w-4 h-4 mr-2 inline" />
             Prof.: {transecta.profundidadFinal || "N/D"}m
