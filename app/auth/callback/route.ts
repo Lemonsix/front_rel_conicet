@@ -9,9 +9,9 @@ export async function GET(request: Request) {
     ?.split("&")[0];
 
   if (access_token) {
-    // Redirigimos a la página de configuración de contraseña con el token
+    // Redirect directly to the password configuration page with the token
     return NextResponse.redirect(
-      new URL(`/auth/set-password?token=${access_token}`, request.url)
+      new URL(`/set-password?token=${access_token}`, request.url)
     );
   }
 
