@@ -24,14 +24,23 @@ interface TransectaModalProps {
     apellido: string;
     rol: string;
   }>;
+  onTransectaCreated?: () => Promise<void> | void;
 }
 
 export function TransectaModal({
   campaniaId,
   embarcaciones,
   buzos,
+  onTransectaCreated,
 }: TransectaModalProps) {
   const [open, setOpen] = useState(false);
+
+  const handleSuccess = () => {
+    setOpen(false);
+    if (onTransectaCreated) {
+      onTransectaCreated();
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -46,7 +55,7 @@ export function TransectaModal({
           campaniaId={campaniaId}
           embarcaciones={embarcaciones}
           buzos={buzos}
-          onSuccess={() => setOpen(false)}
+          onSuccess={handleSuccess}
         />
       </DialogContent>
     </Dialog>

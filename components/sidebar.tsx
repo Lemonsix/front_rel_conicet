@@ -1,3 +1,5 @@
+"use client";
+
 import { Contact, Home, Ship } from "lucide-react";
 
 import {
@@ -11,6 +13,10 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
+import { createClient } from "@/lib/utils/supabase/client";
+import { User } from "@supabase/supabase-js";
+import { useEffect, useState } from "react";
+import { UserButton } from "./auth/user-button";
 import { ThemeToggle } from "./theme-toggle";
 
 // Menu items.
@@ -33,9 +39,31 @@ const items = [
 ];
 
 export function AppSidebar() {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      if (data?.user) {
+        setUser(data.user);
+      }
+    };
+
+    getUser();
+  }, []);
+
   return (
     <Sidebar>
       <SidebarContent>
+        {user && (
+          <>
+            <div className="p-4">
+              <UserButton user={user} />
+            </div>
+            <SidebarSeparator />
+          </>
+        )}
         <SidebarGroup>
           <SidebarGroupLabel>Application</SidebarGroupLabel>
           <SidebarGroupContent>

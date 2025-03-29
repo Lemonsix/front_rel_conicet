@@ -1,6 +1,7 @@
 import { Embarcacion } from "@/lib/types/embarcacion";
 import { Segmento } from "@/lib/types/segmento";
 import { Persona } from "./persona";
+import { Coordenada } from "./coordenadas";
 
 export interface Transecta {
   id: number;
@@ -9,13 +10,16 @@ export interface Transecta {
   fecha: string;
   horaInicio: string;
   horaFin: string;
-  profundidadInicial: number;
+  profundidadInicial?: number;
+  profundidadFinal?: number;
+  puntoInicio?: Coordenada;
+  puntoFin?: Coordenada;
   orientacion: string;
   embarcacionId?: number;
   buzo?: Persona;
   buzoId?: number;
   embarcacion?: Embarcacion;
-  campaniaId: number;
+  campaniaId?: number;
   planillero?: Persona;
   planilleroId?: number;
   segmentos?: Segmento[];

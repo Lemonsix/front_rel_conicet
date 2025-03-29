@@ -87,7 +87,7 @@ export function CampaniasGrid() {
   }
 
   return (
-    <div className="flex flex-col min-h-0 w-full pb-20">
+    <div className="flex flex-col min-h-0 w-full pb-20 ">
       <div className="flex justify-end p-4">
         <CampaniaForm onSuccess={fetchCampanias} />
       </div>

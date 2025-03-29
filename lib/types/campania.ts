@@ -7,7 +7,7 @@ export interface Campania {
   observaciones?: string;
   inicio: string;
   fin: string;
-  cantidadTransectas: number;
+  cantidadTransectas?: number;
   responsable: Persona;
   transectas?: Transecta[];
 }

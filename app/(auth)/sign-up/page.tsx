@@ -1,6 +1,6 @@
 "use client";
 
-import { signInAction } from "@/lib/actions/auth";
+import { signUpAction } from "@/lib/actions/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -17,17 +17,26 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useState } from "react";
 
-const formSchema = z.object({
-  email: z.string().email({
-    message: "Por favor ingresa un email válido.",
-  }),
-  password: z.string().min(6, {
-    message: "La contraseña debe tener al menos 6 caracteres.",
-  }),
-});
+const formSchema = z
+  .object({
+    email: z.string().email({
+      message: "Por favor ingresa un email válido.",
+    }),
+    password: z.string().min(6, {
+      message: "La contraseña debe tener al menos 6 caracteres.",
+    }),
+    confirm: z.string().min(6, {
+      message: "La contraseña debe tener al menos 6 caracteres.",
+    }),
+  })
+  .refine((data) => data.password === data.confirm, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirm"],
+  });
 
-export default function SignIn() {
+export default function SignUp() {
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -35,22 +44,28 @@ export default function SignIn() {
     defaultValues: {
       email: "",
       password: "",
+      confirm: "",
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setError(null);
+    setSuccess(null);
     setIsLoading(true);
 
     try {
       const formData = new FormData();
       formData.append("email", values.email);
       formData.append("password", values.password);
+      formData.append("confirm", values.confirm);
 
-      const result = await signInAction(formData);
+      const result = await signUpAction(formData);
 
       if (result?.error) {
         setError(result.error);
+      } else if (result?.success) {
+        setSuccess(result.success);
+        form.reset();
       }
     } catch (err) {
       setError("Error al conectar con el servidor");
@@ -63,15 +78,21 @@ export default function SignIn() {
   return (
     <>
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold">Iniciar sesión</h1>
+        <h1 className="text-2xl font-bold">Crear cuenta</h1>
         <p className="text-sm text-muted-foreground mt-2">
-          Ingresa tus credenciales para acceder
+          Regístrate para comenzar a usar la aplicación
         </p>
       </div>
 
       {error && (
         <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md mb-6">
           {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="bg-green-100 text-green-800 text-sm p-3 rounded-md mb-6">
+          {success}
         </div>
       )}
 
@@ -100,16 +121,26 @@ export default function SignIn() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <div className="flex items-center justify-between">
-                  <FormLabel>Contraseña</FormLabel>
-                  <Link
-                    href="/forgot-password"
-                    className="text-xs text-primary hover:underline"
-                    tabIndex={isLoading ? -1 : undefined}
-                  >
-                    ¿Olvidaste tu contraseña?
-                  </Link>
-                </div>
+                <FormLabel>Contraseña</FormLabel>
+                <FormControl>
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    {...field}
+                    disabled={isLoading}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="confirm"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Confirmar contraseña</FormLabel>
                 <FormControl>
                   <Input
                     type="password"
@@ -124,20 +155,20 @@ export default function SignIn() {
           />
 
           <Button type="submit" className="w-full mt-2" disabled={isLoading}>
-            {isLoading ? "Autenticando..." : "Iniciar sesión"}
+            {isLoading ? "Registrando..." : "Crear cuenta"}
           </Button>
         </form>
       </Form>
 
       <div className="text-center mt-6">
         <p className="text-sm text-muted-foreground">
-          ¿No tienes una cuenta?{" "}
+          ¿Ya tienes una cuenta?{" "}
           <Link
-            href="/sign-up"
+            href="/sign-in"
             className="text-primary hover:underline"
             tabIndex={isLoading ? -1 : undefined}
           >
-            Regístrate
+            Iniciar sesión
           </Link>
         </p>
       </div>

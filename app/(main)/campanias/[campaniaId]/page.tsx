@@ -1,7 +1,6 @@
+"use server";
 import { CampaniaView } from "@/components/campanias/campania-view";
 import { getCampaniaByIdAction } from "@/lib/actions/campanias";
-import { mapCampania } from "@/lib/mappers/campania";
-import { mapTransectas } from "@/lib/mappers/transecta";
 import { notFound } from "next/navigation";
 
 export default async function CampaniaPage({
@@ -17,12 +16,5 @@ export default async function CampaniaPage({
     notFound();
   }
 
-  // Usar mappers para transformar los datos
-  const campania = mapCampania(data.campania);
-  const transectas = mapTransectas(data.transectas || []);
-
-  // Asignar las transectas a la campaña
-  campania.transectas = transectas;
-
-  return <CampaniaView campania={campania} transectas={transectas} />;
+  return <CampaniaView campania={data} />;
 }
