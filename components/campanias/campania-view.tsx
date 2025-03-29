@@ -5,7 +5,7 @@ import { getEmbarcacionesAction } from "@/lib/actions/embarcaciones";
 import { getPersonasByRolAction } from "@/lib/actions/personas";
 import { getSegmentosByTransectaAction } from "@/lib/actions/segmentos";
 import { getTransectasByCampaniaAction } from "@/lib/actions/transectas";
-import { mapSegmentos } from "@/lib/mappers/segmentos";
+import { mapSegmentos as mapSegmentosFunction } from "@/lib/mappers/segmentos";
 import { mapTransectas } from "@/lib/mappers/transecta";
 import { Campania } from "@/lib/types/campania";
 import { Embarcacion } from "@/lib/types/embarcacion";
@@ -15,6 +15,7 @@ import { Transecta } from "@/lib/types/transecta";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { TransectaModal } from "../transectas/transecta-modal";
+import { TransectaMap } from "../map/transecta-map";
 
 interface CampaniaViewProps {
   campania: Campania;
@@ -36,6 +37,9 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
   const [cargandoSegmentos, setCargandoSegmentos] = useState<
     Record<number, boolean>
   >({});
+  const [selectedTransectaId, setSelectedTransectaId] = useState<number | null>(
+    null
+  );
 
   useEffect(() => {
     async function fetchData() {
@@ -96,7 +100,7 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
         throw new Error("No se encontraron datos");
       }
 
-      const segmentosMapeados = mapSegmentos(result.data);
+      const segmentosMapeados = mapSegmentosFunction(result.data);
 
       setSegmentosCargados((prev) => ({
         ...prev,
@@ -133,7 +137,7 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
             throw new Error("No se encontraron datos");
           }
 
-          const segmentosMapeados = mapSegmentos(result.data);
+          const segmentosMapeados = mapSegmentosFunction(result.data);
 
           setSegmentosCargados((prev) => ({
             ...prev,
@@ -167,8 +171,14 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
     }
   };
 
+  // Get map segments for the selected transecta
+  const segmentosParaMapa =
+    selectedTransectaId !== null && segmentosCargados[selectedTransectaId]
+      ? segmentosCargados[selectedTransectaId]
+      : [];
+
   return (
-    <div className="w-full h-[calc(100vh-4rem)] overflow-y-auto p-6">
+    <div className="w-full h-[calc(100vh-4rem)] overflow-hidden p-6 flex flex-col">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">{campania.nombre}</h1>
@@ -184,15 +194,21 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
         )}
       </div>
 
-      <div className="mt-6">
-        <TransectasList
-          transectas={transectas}
-          onTransectaOpen={handleTransectaOpen}
-          onTransectaClose={handleTransectaClose}
-          onSegmentoCreado={handleSegmentoCreado}
-          segmentosCargados={segmentosCargados}
-          cargandoSegmentos={cargandoSegmentos}
-        />
+      <div className="mt-6 flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="overflow-hidden">
+          <TransectasList
+            transectas={transectas}
+            onTransectaOpen={handleTransectaOpen}
+            onTransectaClose={handleTransectaClose}
+            onSegmentoCreado={handleSegmentoCreado}
+            segmentosCargados={segmentosCargados}
+            cargandoSegmentos={cargandoSegmentos}
+            onTransectaSelect={setSelectedTransectaId}
+          />
+        </div>
+        <div className="h-[500px] lg:h-auto">
+          <TransectaMap segmentos={segmentosParaMapa} />
+        </div>
       </div>
     </div>
   );

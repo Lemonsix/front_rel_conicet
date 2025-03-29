@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Transecta } from "@/lib/types/transecta";
 import { Segmento } from "@/lib/types/segmento";
 import { TransectaCard } from "./transecta-card";
 import { TransectaDetails } from "./transecta-details";
-import { TransectaMap } from "../map/transecta-map";
 
 interface TransectasListProps {
   transectas: Transecta[];
@@ -14,6 +13,7 @@ interface TransectasListProps {
   onSegmentoCreado: () => void;
   segmentosCargados: Record<number, Segmento[]>;
   cargandoSegmentos: Record<number, boolean>;
+  onTransectaSelect: (transectaId: number | null) => void;
 }
 
 export function TransectasList({
@@ -23,77 +23,51 @@ export function TransectasList({
   onSegmentoCreado,
   segmentosCargados,
   cargandoSegmentos,
+  onTransectaSelect,
 }: TransectasListProps) {
   const [selectedTransectaId, setSelectedTransectaId] = useState<number | null>(
     null
   );
-  const [hoveredTransectaId, setHoveredTransectaId] = useState<number | null>(
-    null
-  );
-  const [mapSegmentos, setMapSegmentos] = useState<Segmento[]>([]);
 
-  // When a transecta is hovered, update the map to show its beginning and end points
-  /*  useEffect(() => {
-    if (hoveredTransectaId === null) {
-      // If no transecta is hovered, show all transectas on the map
-      const allSegmentos: Segmento[] = [];
-      Object.values(segmentosCargados).forEach((segmentos) => {
-        if (segmentos && segmentos.length > 0) {
-          // For each transecta, only add the first and last segment for the map
-          const firstSegment = segmentos.find((s) => s.numero === 1);
-          const lastSegment = [...segmentos].sort(
-            (a, b) => b.numero - a.numero
-          )[0];
+  // Memoize handler functions to avoid recreating on every render
+  const handleCardClick = useCallback(
+    (transectaId: number) => {
+      setSelectedTransectaId(transectaId);
+      onTransectaSelect(transectaId);
 
-          if (firstSegment) allSegmentos.push(firstSegment);
-          if (lastSegment && lastSegment.id !== firstSegment?.id)
-            allSegmentos.push(lastSegment);
-        }
-      });
-      setMapSegmentos(allSegmentos);
-    } else if (segmentosCargados[hoveredTransectaId]) {
-      // If a transecta is hovered, only show its segments
-      const segmentos = segmentosCargados[hoveredTransectaId] || [];
-
-      // For the hovered transecta, we might want to show more detail
-      // Here we're showing all segments for better visualization
-      setMapSegmentos(segmentos);
-
-      // Optional: Load segments if they haven't been loaded yet
-      if (!segmentosCargados[hoveredTransectaId]) {
-        onTransectaOpen(hoveredTransectaId);
+      // Ensure segments are loaded
+      if (!segmentosCargados[transectaId]) {
+        onTransectaOpen(transectaId);
       }
-    }
-  }, [hoveredTransectaId, segmentosCargados, onTransectaOpen]); */
+    },
+    [segmentosCargados, onTransectaOpen, onTransectaSelect]
+  );
 
-  // Handle card click - show detail view for that transecta
-  const handleCardClick = (transectaId: number) => {
-    setSelectedTransectaId(transectaId);
+  // Memoize these functions to avoid recalculation on every render
+  const hasMarisqueo = useCallback(
+    (transectaId: number): boolean => {
+      const segmentos = segmentosCargados[transectaId] || [];
+      return segmentos.some((s) => s.tieneMarisqueo);
+    },
+    [segmentosCargados]
+  );
 
-    // Ensure segments are loaded
-    if (!segmentosCargados[transectaId]) {
-      onTransectaOpen(transectaId);
-    }
-  };
-
-  // Calculate if a transecta has marisqueo or cuadrados
-  const hasMarisqueo = (transectaId: number): boolean => {
-    const segmentos = segmentosCargados[transectaId] || [];
-    return segmentos.some((s) => s.tieneMarisqueo);
-  };
-
-  const hasCuadrados = (transectaId: number): boolean => {
-    const segmentos = segmentosCargados[transectaId] || [];
-    return segmentos.some((s) => s.tieneCuadrados);
-  };
+  const hasCuadrados = useCallback(
+    (transectaId: number): boolean => {
+      const segmentos = segmentosCargados[transectaId] || [];
+      return segmentos.some((s) => s.tieneCuadrados);
+    },
+    [segmentosCargados]
+  );
 
   // Go back to grid view
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (selectedTransectaId) {
       onTransectaClose(selectedTransectaId);
     }
     setSelectedTransectaId(null);
-  };
+    onTransectaSelect(null);
+  }, [selectedTransectaId, onTransectaClose, onTransectaSelect]);
 
   // If a transecta is selected, show its details
   if (selectedTransectaId !== null) {
@@ -103,49 +77,33 @@ export function TransectasList({
     if (!selectedTransecta) return null;
 
     return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
-            <TransectaDetails
-              transecta={selectedTransecta}
-              segmentos={segmentosCargados[selectedTransectaId] || []}
-              onBack={handleBack}
-              onSegmentoCreado={onSegmentoCreado}
-              isLoading={cargandoSegmentos[selectedTransectaId] || false}
-            />
-          </div>
-          <div className="h-[500px] lg:h-auto">
-            <TransectaMap
-              segmentos={segmentosCargados[selectedTransectaId] || []}
-            />
-          </div>
-        </div>
+      <div className="h-full overflow-y-auto">
+        <TransectaDetails
+          transecta={selectedTransecta}
+          segmentos={segmentosCargados[selectedTransectaId] || []}
+          onBack={handleBack}
+          onSegmentoCreado={onSegmentoCreado}
+          isLoading={cargandoSegmentos[selectedTransectaId] || false}
+        />
       </div>
     );
   }
 
   // Otherwise show the list of transecta cards
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="lg:col-span-1">
-          <div className="flex flex-col gap-4">
-            {transectas.map((transecta) => (
-              <TransectaCard
-                key={transecta.id}
-                transecta={transecta}
-                onClick={() => handleCardClick(transecta.id)}
-                onHover={setHoveredTransectaId}
-                segmentCount={(segmentosCargados[transecta.id] || []).length}
-                hasMarisqueo={hasMarisqueo(transecta.id)}
-                hasCuadrados={hasCuadrados(transecta.id)}
-              />
-            ))}
-          </div>
-        </div>
-        <div className="h-[500px] lg:h-auto">
-          <TransectaMap segmentos={mapSegmentos} />
-        </div>
+    <div className="h-full overflow-y-auto">
+      <div className="flex flex-col gap-4">
+        {transectas.map((transecta) => (
+          <TransectaCard
+            key={transecta.id}
+            transecta={transecta}
+            onClick={() => handleCardClick(transecta.id)}
+            onHover={() => {}} // Empty function since we're removing hover functionality
+            segmentCount={(segmentosCargados[transecta.id] || []).length}
+            hasMarisqueo={hasMarisqueo(transecta.id)}
+            hasCuadrados={hasCuadrados(transecta.id)}
+          />
+        ))}
       </div>
     </div>
   );

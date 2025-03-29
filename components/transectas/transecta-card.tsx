@@ -13,7 +13,6 @@ import {
   Tally5Icon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { aseguraCoordenada } from "@/lib/utils/coordinates";
 
 interface TransectaCardProps {
   transecta: Transecta;
@@ -46,11 +45,9 @@ export function TransectaCard({
       )}
       onMouseEnter={() => {
         setIsHovered(true);
-        onHover(transecta.id);
       }}
       onMouseLeave={() => {
         setIsHovered(false);
-        onHover(null);
       }}
       onClick={onClick}
     >
