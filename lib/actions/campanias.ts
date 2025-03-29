@@ -3,6 +3,12 @@
 import { createClient } from "@/lib/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { Tables, TablesInsert, TablesUpdate } from "@/lib/types/database.types";
+import {
+  mapCampania,
+  mapCampaniaWithTransectas,
+  mapCampanias,
+} from "@/lib/mappers/campania";
+import { Campania } from "@/lib/types/campania";
 
 export async function createCampaniaAction(
   formData: TablesInsert<"campanias">
@@ -55,7 +61,7 @@ export async function getCampaniasAction(): Promise<{
 }
 
 export async function getCampaniaByIdAction(campaniaId: number): Promise<{
-  data?: any; // Usamos any porque el resultado tiene un formato complejo con muchos joins
+  data?: Campania;
   error?: string;
 }> {
   const supabase = await createClient();
@@ -83,7 +89,6 @@ export async function getCampaniaByIdAction(campaniaId: number): Promise<{
         fecha,
         hora_inicio,
         hora_fin,
-        profundidad_inicial,
         orientacion,
         embarcacion_id,
         buzo_id,
@@ -109,5 +114,54 @@ export async function getCampaniaByIdAction(campaniaId: number): Promise<{
     return { error: error.message };
   }
 
-  return { data: { campania: data, transectas: data.transectas } };
+  const campData = data;
+  // 2) Para cada transecta, hacemos 2 consultas: la primera y la última
+  const transectas = campData.transectas;
+  const transectasConSegmentos = [];
+
+  for (const t of transectas) {
+    // Primer segmento (usando numero de segmento en orden ascendente)
+    const { data: firstSeg, error: fError } = await supabase
+      .from("segmentos")
+      .select("*")
+      .eq("transecta_id", t.id)
+      .order("numero", { ascending: true })
+      .limit(1);
+
+    if (fError) {
+      console.error(
+        `Error al obtener primer segmento de transecta ${t.id}:`,
+        fError
+      );
+    }
+
+    // Último segmento (usando numero de segmento en orden descendente)
+    const { data: lastSeg, error: lError } = await supabase
+      .from("segmentos")
+      .select("*")
+      .eq("transecta_id", t.id)
+      .order("numero", { ascending: false })
+      .limit(1);
+
+    if (lError) {
+      console.error(
+        `Error al obtener último segmento de transecta ${t.id}:`,
+        lError
+      );
+    }
+
+    transectasConSegmentos.push({
+      ...t,
+      firstSegment: firstSeg?.[0] || null,
+      lastSegment: lastSeg?.[0] || null,
+    });
+  }
+
+  // Utilizar el mapper especializado para convertir los datos
+  const campaniaMapeada = mapCampaniaWithTransectas({
+    campania: campData,
+    transectas: transectasConSegmentos,
+  });
+
+  return { data: campaniaMapeada };
 }

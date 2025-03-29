@@ -19,7 +19,7 @@ export interface Transecta {
   buzo?: Persona;
   buzoId?: number;
   embarcacion?: Embarcacion;
-  campaniaId: number;
+  campaniaId?: number;
   planillero?: Persona;
   planilleroId?: number;
   segmentos?: Segmento[];
