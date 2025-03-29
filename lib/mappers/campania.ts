@@ -46,7 +46,7 @@ function mapTransectaWithSegments(transecta: any): Transecta {
       fecha: "",
       horaInicio: "",
       horaFin: "",
-      orientacion: "",
+      sentido: "",
     };
   }
 
@@ -153,7 +153,7 @@ function mapTransectaWithSegments(transecta: any): Transecta {
     profundidadFinal,
     puntoInicio,
     puntoFin,
-    orientacion: transecta.orientacion || "",
+    sentido: transecta.sentido || "",
     embarcacionId: transecta.embarcacion_id,
     buzoId: transecta.buzo_id,
     campaniaId: transecta.campania_id || 0,

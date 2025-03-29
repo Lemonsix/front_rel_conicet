@@ -37,7 +37,7 @@ export async function getTransectasByCampaniaAction(
         hora_fin,
         profundidad_inicial,
         profundidad_final,
-        orientacion,
+        sentido,
         embarcacion_id,
         buzo_id,
         campania_id,
@@ -57,8 +57,19 @@ export async function getTransectasByCampaniaAction(
       return { data: [] };
     }
 
+    // Función auxiliar para ordenación numérica natural
+    const collator = new Intl.Collator(undefined, {
+      numeric: true,
+      sensitivity: 'base'
+    });
+
+    // Ordenar transectas por nombre usando ordenación numérica natural
+    const transectasOrdenadas = [...transectas].sort((a, b) => 
+      collator.compare(a.nombre, b.nombre)
+    );
+
     // Extraemos los IDs de transectas para buscar sus segmentos
-    const transectasIds = transectas.map((t) => t.id);
+    const transectasIds = transectasOrdenadas.map((t) => t.id);
 
     // Verificar que los IDs sean números válidos
     const idsValidos = transectasIds.filter(
@@ -270,7 +281,7 @@ export async function getTransectasByCampaniaAction(
     const buzosMap = new Map(buzos?.map((b) => [b.id, b]) || []);
 
     // Construimos los objetos de transecta completos
-    const transectasConRelaciones = transectas.map((transecta) => {
+    const transectasConRelaciones = transectasOrdenadas.map((transecta) => {
       const transectaId = transecta.id;
       const segmentosDeTransecta = segmentosPorTransecta[transectaId] || [];
 
@@ -347,6 +358,8 @@ export async function getTransectasByCampaniaAction(
       puntoFin: !!t.puntoFin,
     }));
 
+    // Verificar ordenamiento final
+    console.log("Nombres ordenados:", transectasMapeadas.map(t => t.nombre).join(", "));
     console.log("Transectas mapeadas final:", resumenFinal);
 
     revalidatePath(`/campanias/${campaniaId}`);
@@ -365,18 +378,37 @@ export async function createTransectaAction(
 }> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("transectas")
-    .insert([formData])
-    .select()
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from("transectas")
+      .insert([formData])
+      .select()
+      .single();
 
-  if (error) {
-    return { error: error.message };
+    if (error) {
+      console.error("Error al crear transecta:", error);
+      return { error: error.message };
+    }
+
+    console.log(`Transecta creada correctamente con ID: ${data.id}`);
+
+    // Revalidate both the specific campania page and the general campanias page
+    const campaniaPath = `/campanias/${formData.campania_id}`;
+    console.log(`Revalidando ruta específica: ${campaniaPath}`);
+    revalidatePath(campaniaPath);
+
+    console.log("Revalidando ruta general: /campanias");
+    revalidatePath(`/campanias`);
+
+    // Also revalidate the root to ensure any dashboard displays are updated
+    console.log("Revalidando layout raíz");
+    revalidatePath("/", "layout");
+
+    return { data };
+  } catch (error) {
+    console.error("Error inesperado al crear transecta:", error);
+    return { error: String(error) };
   }
-
-  revalidatePath(`/campanias/${formData.campania_id}`);
-  return { data };
 }
 
 export async function getNombresTransectasAction(): Promise<{

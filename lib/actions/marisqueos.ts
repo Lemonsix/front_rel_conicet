@@ -4,30 +4,31 @@ import { createClient } from "@/lib/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { Tables } from "@/lib/types/database.types";
 
-// Definir la estructura de un Cuadrado
-export interface Cuadrado {
+// Definir la estructura de un Marisqueo
+export interface Marisqueo {
   id: number;
   segmento_id: number;
   transecta_id: number;
+  buzo_id: number;
   nombre_transecta: string;
+  nombre_buzo?: string;
   numero_segmento: number;
   fecha: string;
-  replica: number;
-  tamanio: number;
-  profundidad_inicio?: number | null;
-  profundidad_fin?: number | null;
-  conteo?: number | null;
-  tiene_muestreo?: string | null;
+  n_captura: number;
+  profundidad?: number | null;
+  tiempo?: number | null;
+  peso_muestra?: number | null;
+  tiene_muestreo?: boolean | null;
   observaciones?: string;
 }
 
 /**
- * Obtiene todos los cuadrados asociados a una campaña
+ * Obtiene todos los marisqueos asociados a una campaña
  */
-export async function getCuadradosByCampaniaAction(
+export async function getMarisqueosByCampaniaAction(
   campaniaId: number
 ): Promise<{
-  data?: Cuadrado[];
+  data?: Marisqueo[];
   error?: string;
 }> {
   const supabase = await createClient();
@@ -51,11 +52,12 @@ export async function getCuadradosByCampaniaAction(
     // Obtenemos los IDs de transectas
     const transectasIds = transectas.map((t) => t.id);
 
-    // Obtenemos todos los segmentos asociados a esas transectas sin filtrar por el flag
+    // Obtenemos los segmentos asociados a esas transectas
     const { data: segmentos, error: segmentosError } = await supabase
       .from("segmentos")
-      .select("id, transecta_id, numero")
-      .in("transecta_id", transectasIds);
+      .select("id, transecta_id, numero, tiene_marisqueo")
+      .in("transecta_id", transectasIds)
+      .eq("tiene_marisqueo", "SI"); // Los valores en la BD son "SI" o "NO" como strings
 
     if (segmentosError) {
       console.error("Error al obtener segmentos:", segmentosError);
@@ -66,70 +68,68 @@ export async function getCuadradosByCampaniaAction(
       return { data: [] };
     }
 
-    // Obtenemos los IDs de todos los segmentos
+    // Obtenemos los IDs de segmentos que tienen marisqueos
     const segmentosIds = segmentos.map((s) => s.id);
 
-    // Consultamos la tabla de cuadrados para los segmentos
-    const { data: cuadradosData, error: cuadradosError } = await supabase
-      .from("cuadrados")
-      .select("*")
+    // Consultamos la tabla de marisqueos
+    const { data: marisqueosData, error: marisqueosError } = await supabase
+      .from("marisqueos")
+      .select("*, buzo:buzo_id(id, nombre, apellido)")
       .in("segmento_id", segmentosIds);
 
-    if (cuadradosError) {
-      console.error("Error al obtener cuadrados:", cuadradosError);
-      return { error: cuadradosError.message };
+    if (marisqueosError) {
+      console.error("Error al obtener marisqueos:", marisqueosError);
+      return { error: marisqueosError.message };
     }
 
-    // Si no hay cuadrados, retornamos array vacío
-    if (!cuadradosData || cuadradosData.length === 0) {
-      return { data: [] };
-    }
-
-    // Creamos mapas para buscar datos rápidamente
+    // Creamos mapas para búsquedas rápidas
     const transectasMap = new Map(transectas.map((t) => [t.id, t]));
     const segmentosMap = new Map(segmentos.map((s) => [s.id, s]));
 
     // Transformamos los datos a nuestro formato de respuesta
-    const cuadradosMapeados = cuadradosData.map(
-      (cuadrado: Tables<"cuadrados">) => {
-        const segmento = segmentosMap.get(cuadrado.segmento_id);
+    const marisqueosMapeados =
+      marisqueosData?.map((marisqueo: any) => {
+        const segmento = segmentosMap.get(marisqueo.segmento_id);
         const transectaId = segmento?.transecta_id || 0;
         const transecta = transectasMap.get(transectaId);
+        const buzoInfo = marisqueo.buzo;
 
         return {
-          id: cuadrado.id,
-          segmento_id: cuadrado.segmento_id,
+          id: marisqueo.id,
+          segmento_id: marisqueo.segmento_id,
           transecta_id: transectaId,
+          buzo_id: marisqueo.buzo_id,
           nombre_transecta: transecta?.nombre || `Transecta ${transectaId}`,
+          nombre_buzo: buzoInfo
+            ? `${buzoInfo.nombre} ${buzoInfo.apellido}`
+            : undefined,
           numero_segmento: segmento?.numero || 0,
           fecha: transecta?.fecha || new Date().toISOString().split("T")[0],
-          replica: cuadrado.replica,
-          tamanio: cuadrado.tamanio,
-          profundidad_inicio: cuadrado.profundidad_inicio,
-          profundidad_fin: cuadrado.profundidad_fin,
-          conteo: cuadrado.conteo,
-          tiene_muestreo: cuadrado.tiene_muestreo,
-          observaciones: `Cuadrado ${cuadrado.replica} en segmento ${
+          n_captura: marisqueo.n_captura,
+          profundidad: marisqueo.profundidad,
+          tiempo: marisqueo.tiempo,
+          peso_muestra: marisqueo.peso_muestra,
+          tiene_muestreo: marisqueo.tiene_muestreo,
+          observaciones: `Marisqueo ${marisqueo.n_captura} en segmento ${
             segmento?.numero || 0
           }`,
         };
-      }
-    );
+      }) || [];
 
-    return { data: cuadradosMapeados };
+    return { data: marisqueosMapeados };
   } catch (error) {
-    console.error("Error al obtener cuadrados:", error);
+    console.error("Error al obtener marisqueos:", error);
     return { error: String(error) };
   }
 }
 
 /**
- * Obtiene todos los cuadrados asociados a una transecta específica
+ * Obtiene todos los marisqueos asociados a una transecta específica
  */
-export async function getCuadradosByTransectaAction(
+export async function getMarisqueosByTransectaAction(
   transectaId: number
 ): Promise<{
-  data?: Cuadrado[];
+  data?: Marisqueo[];
   error?: string;
 }> {
   const supabase = await createClient();
@@ -151,11 +151,12 @@ export async function getCuadradosByTransectaAction(
       return { data: [] };
     }
 
-    // Obtenemos todos los segmentos de la transecta sin filtrar por flag
+    // Obtenemos los segmentos de la transecta
     const { data: segmentos, error: segmentosError } = await supabase
       .from("segmentos")
-      .select("id, transecta_id, numero")
-      .eq("transecta_id", transectaId);
+      .select("id, transecta_id, numero, tiene_marisqueo")
+      .eq("transecta_id", transectaId)
+      .eq("tiene_marisqueo", "SI"); // Los valores en la BD son "SI" o "NO" como strings
 
     if (segmentosError) {
       console.error("Error al obtener segmentos:", segmentosError);
@@ -166,56 +167,54 @@ export async function getCuadradosByTransectaAction(
       return { data: [] };
     }
 
-    // Obtenemos los IDs de todos los segmentos
+    // Obtenemos los IDs de segmentos que tienen marisqueos
     const segmentosIds = segmentos.map((s) => s.id);
 
-    // Consultamos la tabla de cuadrados
-    const { data: cuadradosData, error: cuadradosError } = await supabase
-      .from("cuadrados")
-      .select("*")
+    // Consultamos la tabla de marisqueos
+    const { data: marisqueosData, error: marisqueosError } = await supabase
+      .from("marisqueos")
+      .select("*, buzo:buzo_id(id, nombre, apellido)")
       .in("segmento_id", segmentosIds);
 
-    if (cuadradosError) {
-      console.error("Error al obtener cuadrados:", cuadradosError);
-      return { error: cuadradosError.message };
-    }
-
-    // Si no hay cuadrados, retornamos array vacío
-    if (!cuadradosData || cuadradosData.length === 0) {
-      return { data: [] };
+    if (marisqueosError) {
+      console.error("Error al obtener marisqueos:", marisqueosError);
+      return { error: marisqueosError.message };
     }
 
     // Creamos un mapa para buscar segmentos rápidamente
     const segmentosMap = new Map(segmentos.map((s) => [s.id, s]));
 
     // Transformamos los datos a nuestro formato de respuesta
-    const cuadradosMapeados = cuadradosData.map(
-      (cuadrado: Tables<"cuadrados">) => {
-        const segmento = segmentosMap.get(cuadrado.segmento_id);
+    const marisqueosMapeados =
+      marisqueosData?.map((marisqueo: any) => {
+        const segmento = segmentosMap.get(marisqueo.segmento_id);
+        const buzoInfo = marisqueo.buzo;
 
         return {
-          id: cuadrado.id,
-          segmento_id: cuadrado.segmento_id,
+          id: marisqueo.id,
+          segmento_id: marisqueo.segmento_id,
           transecta_id: transectaId,
+          buzo_id: marisqueo.buzo_id,
           nombre_transecta: transecta.nombre || `Transecta ${transectaId}`,
+          nombre_buzo: buzoInfo
+            ? `${buzoInfo.nombre} ${buzoInfo.apellido}`
+            : undefined,
           numero_segmento: segmento?.numero || 0,
           fecha: transecta.fecha,
-          replica: cuadrado.replica,
-          tamanio: cuadrado.tamanio,
-          profundidad_inicio: cuadrado.profundidad_inicio,
-          profundidad_fin: cuadrado.profundidad_fin,
-          conteo: cuadrado.conteo,
-          tiene_muestreo: cuadrado.tiene_muestreo,
-          observaciones: `Cuadrado ${cuadrado.replica} en segmento ${
+          n_captura: marisqueo.n_captura,
+          profundidad: marisqueo.profundidad,
+          tiempo: marisqueo.tiempo,
+          peso_muestra: marisqueo.peso_muestra,
+          tiene_muestreo: marisqueo.tiene_muestreo,
+          observaciones: `Marisqueo ${marisqueo.n_captura} en segmento ${
             segmento?.numero || 0
           }`,
         };
-      }
-    );
+      }) || [];
 
-    return { data: cuadradosMapeados };
+    return { data: marisqueosMapeados };
   } catch (error) {
-    console.error("Error al obtener cuadrados:", error);
+    console.error("Error al obtener marisqueos:", error);
     return { error: String(error) };
   }
 }

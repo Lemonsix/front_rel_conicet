@@ -16,7 +16,7 @@ export type TransectaWithRelations = {
   hora_fin: string | null;
   profundidad_inicial: number | null;
   profundidad_final: number | null;
-  orientacion: string | null;
+  sentido: string | null;
   embarcacion_id: number | null;
   buzo_id: number | null;
   campania_id: number;
@@ -147,7 +147,7 @@ export function mapTransecta(transecta: TransectaWithRelations): Transecta {
     profundidadFinal,
     puntoInicio,
     puntoFin,
-    orientacion: transecta.orientacion || "",
+    sentido: transecta.sentido || "",
     embarcacionId: transecta.embarcacion_id || undefined,
     buzoId: transecta.buzo_id || undefined,
     campaniaId: transecta.campania_id,

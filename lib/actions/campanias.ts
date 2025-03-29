@@ -89,7 +89,7 @@ export async function getCampaniaByIdAction(campaniaId: number): Promise<{
         fecha,
         hora_inicio,
         hora_fin,
-        orientacion,
+        sentido,
         embarcacion_id,
         buzo_id,
         campania_id,

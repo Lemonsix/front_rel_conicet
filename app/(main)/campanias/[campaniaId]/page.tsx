@@ -16,5 +16,9 @@ export default async function CampaniaPage({
     notFound();
   }
 
-  return <CampaniaView campania={data} />;
+  return (
+    <div className="h-full">
+      <CampaniaView campania={data} />
+    </div>
+  );
 }

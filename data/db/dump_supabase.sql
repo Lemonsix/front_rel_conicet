@@ -113,7 +113,7 @@ CREATE TABLE public.results (
     transect_id integer NOT NULL,
     transecta character(10),
     replica character(2),
-    orientacion character(5),
+    sentido character(5),
     buzo character varying(101)
 );
 
@@ -198,10 +198,10 @@ CREATE TABLE public.tallasmarisqueo2 (
 
 --
 -- TOC entry 232 (class 1259 OID 24709)
--- Name: transect_templates; Type: TABLE; Schema: public; Owner: cenpat
+-- Name: transectas_templates; Type: TABLE; Schema: public; Owner: cenpat
 --
 
-CREATE TABLE public.transect_templates (
+CREATE TABLE public.transectas_templates (
     id integer NOT NULL,
     name character varying(10),
     area integer,
@@ -214,10 +214,10 @@ CREATE TABLE public.transect_templates (
 
 --
 -- TOC entry 231 (class 1259 OID 24608)
--- Name: transects; Type: TABLE; Schema: public; Owner: cenpat
+-- Name: transectas; Type: TABLE; Schema: public; Owner: cenpat
 --
 
-CREATE TABLE public.transects (
+CREATE TABLE public.transectas (
     id bigint NOT NULL,
     campaign_id bigint NOT NULL,
     name character(10),
@@ -236,7 +236,7 @@ CREATE TABLE public.transects (
     profundidadi double precision,
     logger_id bigint,
     ship_id bigint,
-    orientacion character(5)
+    sentido character(5)
 );
 
 
@@ -24713,7 +24713,7 @@ COPY public.quadrats (id, segment_id, replica, "timestamp", count, size, flag_mu
 -- Data for Name: results; Type: TABLE DATA; Schema: public; Owner: cenpat
 --
 
-COPY public.results (date, transect_id, transecta, replica, orientacion, buzo) FROM stdin;
+COPY public.results (date, transect_id, transecta, replica, sentido, buzo) FROM stdin;
 2001-07-05 00:00:00	274	 1/2      	no	N-S  	Dario NA
 2001-07-05 00:00:00	287	 10/2     	no	N-S  	Ricardo Vera
 2001-07-05 00:00:00	289	 11/2     	no	N-S  	Ricardo Vera
@@ -100383,10 +100383,10 @@ COPY public.transect_templates (id, name, area, region, coast, secondary_region)
 --
 -- TOC entry 4362 (class 0 OID 24608)
 -- Dependencies: 231
--- Data for Name: transects; Type: TABLE DATA; Schema: public; Owner: cenpat
+-- Data for Name: transectas; Type: TABLE DATA; Schema: public; Owner: cenpat
 --
 
-COPY public.transects (id, campaign_id, name, date, start_time, end_time, diver_id, replica, observaciones, grad_lati, min_lati, seg_lati, grad_longi, min_longi, seg_longi, profundidadi, logger_id, ship_id, orientacion) FROM stdin;
+COPY public.transectas (id, campaign_id, name, date, start_time, end_time, diver_id, replica, observaciones, grad_lati, min_lati, seg_lati, grad_longi, min_longi, seg_longi, profundidadi, logger_id, ship_id, sentido) FROM stdin;
 304	7	26        	2001-05-02 00:00:00	1899-12-30 15:32:00	1899-12-30 15:42:00	3	f		\N	\N	\N	64	6	0	\N	\N	\N	N-S  
 31	1	64B       	2005-06-08 00:00:00	1900-01-01 12:40:00	1900-01-01 13:18:00	4	f		42	19	15	\N	\N	\N	\N	\N	\N	E-O  
 146	3	15B       	2006-05-30 00:00:00	1899-12-30 13:47:00	\N	19	f	\N	\N	\N	\N	64	6	30	\N	\N	\N	N-S  
@@ -101372,28 +101372,28 @@ ALTER TABLE ONLY public.ships
 
 --
 -- TOC entry 4190 (class 2606 OID 24713)
--- Name: transect_templates transect_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: cenpat
+-- Name: transectas_templates transectas_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: cenpat
 --
 
-ALTER TABLE ONLY public.transect_templates
-    ADD CONSTRAINT transect_templates_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.transectas_templates
+    ADD CONSTRAINT transectas_templates_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 4188 (class 2606 OID 24626)
--- Name: transects transects_pk; Type: CONSTRAINT; Schema: public; Owner: cenpat
+-- Name: transectas transectas_pk; Type: CONSTRAINT; Schema: public; Owner: cenpat
 --
 
-ALTER TABLE ONLY public.transects
-    ADD CONSTRAINT transects_pk PRIMARY KEY (id);
+ALTER TABLE ONLY public.transectas
+    ADD CONSTRAINT transectas_pk PRIMARY KEY (id);
 
 
 --
 -- TOC entry 4201 (class 2606 OID 24627)
--- Name: transects fk_diver; Type: FK CONSTRAINT; Schema: public; Owner: cenpat
+-- Name: transectas fk_diver; Type: FK CONSTRAINT; Schema: public; Owner: cenpat
 --
 
-ALTER TABLE ONLY public.transects
+ALTER TABLE ONLY public.transectas
     ADD CONSTRAINT fk_diver FOREIGN KEY (diver_id) REFERENCES public.persons(id);
 
 
@@ -101408,10 +101408,10 @@ ALTER TABLE ONLY public.marisqueos
 
 --
 -- TOC entry 4202 (class 2606 OID 24637)
--- Name: transects fk_logger; Type: FK CONSTRAINT; Schema: public; Owner: cenpat
+-- Name: transectas fk_logger; Type: FK CONSTRAINT; Schema: public; Owner: cenpat
 --
 
-ALTER TABLE ONLY public.transects
+ALTER TABLE ONLY public.transectas
     ADD CONSTRAINT fk_logger FOREIGN KEY (logger_id) REFERENCES public.persons(id);
 
 
@@ -101471,10 +101471,10 @@ ALTER TABLE ONLY public.quadrats
 
 --
 -- TOC entry 4203 (class 2606 OID 24672)
--- Name: transects fk_ship; Type: FK CONSTRAINT; Schema: public; Owner: cenpat
+-- Name: transectas fk_ship; Type: FK CONSTRAINT; Schema: public; Owner: cenpat
 --
 
-ALTER TABLE ONLY public.transects
+ALTER TABLE ONLY public.transectas
     ADD CONSTRAINT fk_ship FOREIGN KEY (ship_id) REFERENCES public.ships(id);
 
 
@@ -101483,7 +101483,7 @@ ALTER TABLE ONLY public.transects
 -- Name: segments fk_substract; Type: FK CONSTRAINT; Schema: public; Owner: cenpat
 --
 
-ALTER TABLE ONLY public.segments
+ALTER TABLE ONLY public.segmentos
     ADD CONSTRAINT fk_substract FOREIGN KEY (substract_id) REFERENCES public.substracts(id);
 
 
@@ -101492,8 +101492,8 @@ ALTER TABLE ONLY public.segments
 -- Name: results fk_transect; Type: FK CONSTRAINT; Schema: public; Owner: cenpat
 --
 
-ALTER TABLE ONLY public.results
-    ADD CONSTRAINT fk_transect FOREIGN KEY (transect_id) REFERENCES public.transects(id);
+ALTER TABLE ONLY public.resultados
+    ADD CONSTRAINT fk_transecta FOREIGN KEY (transecta_id) REFERENCES public.transectas(id);
 
 
 --
@@ -101501,8 +101501,8 @@ ALTER TABLE ONLY public.results
 -- Name: segments segments_fk; Type: FK CONSTRAINT; Schema: public; Owner: cenpat
 --
 
-ALTER TABLE ONLY public.segments
-    ADD CONSTRAINT segments_fk FOREIGN KEY (transect_id) REFERENCES public.transects(id);
+ALTER TABLE ONLY public.segmentos
+    ADD CONSTRAINT segments_fk FOREIGN KEY (transecta_id) REFERENCES public.transectas(id);
 
 
 -- Completed on 2023-09-18 14:42:51

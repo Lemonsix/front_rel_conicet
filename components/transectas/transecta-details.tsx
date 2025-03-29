@@ -61,7 +61,7 @@ export function TransectaDetails({
             <div>
               <p className="text-sm font-medium">Orientación:</p>
               <p className="text-sm">
-                {transecta.orientacion || "No especificada"}
+                {transecta.sentido || "No especificada"}
               </p>
             </div>
             <div>

@@ -134,7 +134,7 @@ CREATE TABLE public.resultados (
     transect_id integer NOT NULL,
     transecta character(10),
     replica character(2),
-    orientacion character(5),
+    sentido character(5),
     buzo character varying(101)
 );
 ALTER TABLE public.resultados OWNER TO postgres;
@@ -227,7 +227,7 @@ CREATE TABLE public.transectas (
     profundidad_inicial double precision,
     planillero_id bigint,
     embarcacion_id bigint,
-    orientacion character(5)
+    sentido character(5)
 );
 ALTER TABLE public.transectas OWNER TO postgres;
 --
