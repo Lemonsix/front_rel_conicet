@@ -52,12 +52,11 @@ export async function getMarisqueosByCampaniaAction(
     // Obtenemos los IDs de transectas
     const transectasIds = transectas.map((t) => t.id);
 
-    // Obtenemos los segmentos asociados a esas transectas
+    // Obtenemos todos los segmentos asociados a esas transectas sin filtrar por el flag
     const { data: segmentos, error: segmentosError } = await supabase
       .from("segmentos")
-      .select("id, transecta_id, numero, tiene_marisqueo")
-      .in("transecta_id", transectasIds)
-      .eq("tiene_marisqueo", "SI"); // Los valores en la BD son "SI" o "NO" como strings
+      .select("id, transecta_id, numero")
+      .in("transecta_id", transectasIds);
 
     if (segmentosError) {
       console.error("Error al obtener segmentos:", segmentosError);
@@ -68,7 +67,7 @@ export async function getMarisqueosByCampaniaAction(
       return { data: [] };
     }
 
-    // Obtenemos los IDs de segmentos que tienen marisqueos
+    // Obtenemos los IDs de todos los segmentos
     const segmentosIds = segmentos.map((s) => s.id);
 
     // Consultamos la tabla de marisqueos
@@ -82,39 +81,43 @@ export async function getMarisqueosByCampaniaAction(
       return { error: marisqueosError.message };
     }
 
+    // Si no hay marisqueos, retornamos array vacío
+    if (!marisqueosData || marisqueosData.length === 0) {
+      return { data: [] };
+    }
+
     // Creamos mapas para búsquedas rápidas
     const transectasMap = new Map(transectas.map((t) => [t.id, t]));
     const segmentosMap = new Map(segmentos.map((s) => [s.id, s]));
 
     // Transformamos los datos a nuestro formato de respuesta
-    const marisqueosMapeados =
-      marisqueosData?.map((marisqueo: any) => {
-        const segmento = segmentosMap.get(marisqueo.segmento_id);
-        const transectaId = segmento?.transecta_id || 0;
-        const transecta = transectasMap.get(transectaId);
-        const buzoInfo = marisqueo.buzo;
+    const marisqueosMapeados = marisqueosData.map((marisqueo: any) => {
+      const segmento = segmentosMap.get(marisqueo.segmento_id);
+      const transectaId = segmento?.transecta_id || 0;
+      const transecta = transectasMap.get(transectaId);
+      const buzoInfo = marisqueo.buzo;
 
-        return {
-          id: marisqueo.id,
-          segmento_id: marisqueo.segmento_id,
-          transecta_id: transectaId,
-          buzo_id: marisqueo.buzo_id,
-          nombre_transecta: transecta?.nombre || `Transecta ${transectaId}`,
-          nombre_buzo: buzoInfo
-            ? `${buzoInfo.nombre} ${buzoInfo.apellido}`
-            : undefined,
-          numero_segmento: segmento?.numero || 0,
-          fecha: transecta?.fecha || new Date().toISOString().split("T")[0],
-          n_captura: marisqueo.n_captura,
-          profundidad: marisqueo.profundidad,
-          tiempo: marisqueo.tiempo,
-          peso_muestra: marisqueo.peso_muestra,
-          tiene_muestreo: marisqueo.tiene_muestreo,
-          observaciones: `Marisqueo ${marisqueo.n_captura} en segmento ${
-            segmento?.numero || 0
-          }`,
-        };
-      }) || [];
+      return {
+        id: marisqueo.id,
+        segmento_id: marisqueo.segmento_id,
+        transecta_id: transectaId,
+        buzo_id: marisqueo.buzo_id,
+        nombre_transecta: transecta?.nombre || `Transecta ${transectaId}`,
+        nombre_buzo: buzoInfo
+          ? `${buzoInfo.nombre} ${buzoInfo.apellido}`
+          : undefined,
+        numero_segmento: segmento?.numero || 0,
+        fecha: transecta?.fecha || new Date().toISOString().split("T")[0],
+        n_captura: marisqueo.n_captura,
+        profundidad: marisqueo.profundidad,
+        tiempo: marisqueo.tiempo,
+        peso_muestra: marisqueo.peso_muestra,
+        tiene_muestreo: marisqueo.tiene_muestreo,
+        observaciones: `Marisqueo ${marisqueo.n_captura} en segmento ${
+          segmento?.numero || 0
+        }`,
+      };
+    });
 
     return { data: marisqueosMapeados };
   } catch (error) {
@@ -151,12 +154,11 @@ export async function getMarisqueosByTransectaAction(
       return { data: [] };
     }
 
-    // Obtenemos los segmentos de la transecta
+    // Obtenemos todos los segmentos de la transecta sin filtrar por flag
     const { data: segmentos, error: segmentosError } = await supabase
       .from("segmentos")
-      .select("id, transecta_id, numero, tiene_marisqueo")
-      .eq("transecta_id", transectaId)
-      .eq("tiene_marisqueo", "SI"); // Los valores en la BD son "SI" o "NO" como strings
+      .select("id, transecta_id, numero")
+      .eq("transecta_id", transectaId);
 
     if (segmentosError) {
       console.error("Error al obtener segmentos:", segmentosError);
@@ -167,7 +169,7 @@ export async function getMarisqueosByTransectaAction(
       return { data: [] };
     }
 
-    // Obtenemos los IDs de segmentos que tienen marisqueos
+    // Obtenemos los IDs de todos los segmentos
     const segmentosIds = segmentos.map((s) => s.id);
 
     // Consultamos la tabla de marisqueos
@@ -181,36 +183,40 @@ export async function getMarisqueosByTransectaAction(
       return { error: marisqueosError.message };
     }
 
+    // Si no hay marisqueos, retornamos array vacío
+    if (!marisqueosData || marisqueosData.length === 0) {
+      return { data: [] };
+    }
+
     // Creamos un mapa para buscar segmentos rápidamente
     const segmentosMap = new Map(segmentos.map((s) => [s.id, s]));
 
     // Transformamos los datos a nuestro formato de respuesta
-    const marisqueosMapeados =
-      marisqueosData?.map((marisqueo: any) => {
-        const segmento = segmentosMap.get(marisqueo.segmento_id);
-        const buzoInfo = marisqueo.buzo;
+    const marisqueosMapeados = marisqueosData.map((marisqueo: any) => {
+      const segmento = segmentosMap.get(marisqueo.segmento_id);
+      const buzoInfo = marisqueo.buzo;
 
-        return {
-          id: marisqueo.id,
-          segmento_id: marisqueo.segmento_id,
-          transecta_id: transectaId,
-          buzo_id: marisqueo.buzo_id,
-          nombre_transecta: transecta.nombre || `Transecta ${transectaId}`,
-          nombre_buzo: buzoInfo
-            ? `${buzoInfo.nombre} ${buzoInfo.apellido}`
-            : undefined,
-          numero_segmento: segmento?.numero || 0,
-          fecha: transecta.fecha,
-          n_captura: marisqueo.n_captura,
-          profundidad: marisqueo.profundidad,
-          tiempo: marisqueo.tiempo,
-          peso_muestra: marisqueo.peso_muestra,
-          tiene_muestreo: marisqueo.tiene_muestreo,
-          observaciones: `Marisqueo ${marisqueo.n_captura} en segmento ${
-            segmento?.numero || 0
-          }`,
-        };
-      }) || [];
+      return {
+        id: marisqueo.id,
+        segmento_id: marisqueo.segmento_id,
+        transecta_id: transectaId,
+        buzo_id: marisqueo.buzo_id,
+        nombre_transecta: transecta.nombre || `Transecta ${transectaId}`,
+        nombre_buzo: buzoInfo
+          ? `${buzoInfo.nombre} ${buzoInfo.apellido}`
+          : undefined,
+        numero_segmento: segmento?.numero || 0,
+        fecha: transecta.fecha,
+        n_captura: marisqueo.n_captura,
+        profundidad: marisqueo.profundidad,
+        tiempo: marisqueo.tiempo,
+        peso_muestra: marisqueo.peso_muestra,
+        tiene_muestreo: marisqueo.tiene_muestreo,
+        observaciones: `Marisqueo ${marisqueo.n_captura} en segmento ${
+          segmento?.numero || 0
+        }`,
+      };
+    });
 
     return { data: marisqueosMapeados };
   } catch (error) {
