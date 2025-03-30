@@ -14,13 +14,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Marisqueo } from "@/lib/actions/marisqueos";
+import { NuevoMarisqueoForm } from "./nuevo-marisqueo-form";
 
 interface MarisqueosListProps {
   marisqueos: Marisqueo[];
   isLoading: boolean;
+  campaniaId: number;
+  onMarisqueoAdded?: () => void;
 }
 
-export function MarisqueosList({ marisqueos, isLoading }: MarisqueosListProps) {
+export function MarisqueosList({
+  marisqueos,
+  isLoading,
+  campaniaId,
+  onMarisqueoAdded,
+}: MarisqueosListProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Filtrar por término de búsqueda
@@ -48,9 +56,13 @@ export function MarisqueosList({ marisqueos, isLoading }: MarisqueosListProps) {
         <h3 className="text-lg font-medium mb-2">
           No hay marisqueos registrados
         </h3>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground mb-4">
           Los marisqueos se registran en los segmentos de las transectas.
         </p>
+        <NuevoMarisqueoForm
+          campaniaId={campaniaId}
+          onSuccess={onMarisqueoAdded}
+        />
       </div>
     );
   }
@@ -60,12 +72,18 @@ export function MarisqueosList({ marisqueos, isLoading }: MarisqueosListProps) {
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Marisqueos</CardTitle>
-          <Input
-            placeholder="Buscar por transecta, segmento o buzo..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
-          />
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Buscar por transecta, segmento o buzo..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
+            <NuevoMarisqueoForm
+              campaniaId={campaniaId}
+              onSuccess={onMarisqueoAdded}
+            />
+          </div>
         </div>
       </CardHeader>
       <CardContent>

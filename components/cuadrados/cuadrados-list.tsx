@@ -14,13 +14,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Cuadrado } from "@/lib/actions/cuadrados";
+import { NuevoCuadradoForm } from "./nuevo-cuadrado-form";
 
 interface CuadradosListProps {
   cuadrados: Cuadrado[];
   isLoading: boolean;
+  campaniaId: number;
+  onCuadradoAdded?: () => void;
 }
 
-export function CuadradosList({ cuadrados, isLoading }: CuadradosListProps) {
+export function CuadradosList({
+  cuadrados,
+  isLoading,
+  campaniaId,
+  onCuadradoAdded,
+}: CuadradosListProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Filtrar por término de búsqueda
@@ -47,9 +55,13 @@ export function CuadradosList({ cuadrados, isLoading }: CuadradosListProps) {
         <h3 className="text-lg font-medium mb-2">
           No hay cuadrados registrados
         </h3>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground mb-4">
           Los cuadrados se registran en los segmentos de las transectas.
         </p>
+        <NuevoCuadradoForm
+          campaniaId={campaniaId}
+          onSuccess={onCuadradoAdded}
+        />
       </div>
     );
   }
@@ -59,12 +71,18 @@ export function CuadradosList({ cuadrados, isLoading }: CuadradosListProps) {
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Cuadrados</CardTitle>
-          <Input
-            placeholder="Buscar por transecta, segmento o réplica..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
-          />
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Buscar por transecta, segmento o réplica..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
+            <NuevoCuadradoForm
+              campaniaId={campaniaId}
+              onSuccess={onCuadradoAdded}
+            />
+          </div>
         </div>
       </CardHeader>
       <CardContent>

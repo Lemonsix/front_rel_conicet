@@ -337,11 +337,18 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
           <MarisqueosList
             marisqueos={marisqueos}
             isLoading={isLoadingMarisqueos}
+            campaniaId={campania.id}
+            onMarisqueoAdded={loadMarisqueos}
           />
         </TabsContent>
 
-        <TabsContent value="cuadrados" className="flex-1 min-h-0">
-          <CuadradosList cuadrados={cuadrados} isLoading={isLoadingCuadrados} />
+        <TabsContent value="cuadrados" className="flex-1">
+          <CuadradosList
+            cuadrados={cuadrados}
+            isLoading={isLoadingCuadrados}
+            campaniaId={campania.id}
+            onCuadradoAdded={loadCuadrados}
+          />
         </TabsContent>
       </Tabs>
     </div>

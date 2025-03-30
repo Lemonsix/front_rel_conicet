@@ -224,3 +224,98 @@ export async function getMarisqueosByTransectaAction(
     return { error: String(error) };
   }
 }
+
+/**
+ * Crea un nuevo marisqueo en un segmento
+ */
+export async function createMarisqueoAction(formData: {
+  segmento_id: number;
+  buzo_id: number;
+  n_captura: number;
+  coordenadas?: string;
+  profundidad?: number;
+  tiempo?: number;
+  peso_muestra?: number;
+  observaciones?: string;
+}): Promise<{ data?: Tables<"marisqueos">; error?: string }> {
+  const supabase = await createClient();
+
+  try {
+    const marisqueoData = {
+      ...formData,
+      timestamp: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from("marisqueos")
+      .insert([marisqueoData])
+      .select()
+      .single();
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    revalidatePath("/campanias");
+    return { data };
+  } catch (error) {
+    console.error("Error al crear marisqueo:", error);
+    return { error: String(error) };
+  }
+}
+
+/**
+ * Obtiene el último marisqueo creado en un segmento específico
+ */
+export async function getUltimoMarisqueoAction(
+  segmentoId: number
+): Promise<{ data?: any; error?: string }> {
+  const supabase = await createClient();
+
+  try {
+    const { data, error } = await supabase
+      .from("marisqueos")
+      .select("*")
+      .eq("segmento_id", segmentoId)
+      .order("n_captura", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error && error.code !== "PGRST116") {
+      // PGRST116 es el código cuando no se encuentra ningún registro
+      return { error: error.message };
+    }
+
+    return { data };
+  } catch (error) {
+    console.error("Error al obtener el último marisqueo:", error);
+    return { error: String(error) };
+  }
+}
+
+/**
+ * Verifica si ya existe un marisqueo con el número de captura especificado en el segmento
+ */
+export async function checkMarisqueoCapturaAvailabilityAction(
+  segmentoId: number,
+  nCaptura: number
+): Promise<{ available?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  try {
+    const { data, error, count } = await supabase
+      .from("marisqueos")
+      .select("*", { count: "exact", head: true })
+      .eq("segmento_id", segmentoId)
+      .eq("n_captura", nCaptura);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    return { available: count === 0 };
+  } catch (error) {
+    console.error("Error al verificar disponibilidad de captura:", error);
+    return { error: String(error) };
+  }
+}

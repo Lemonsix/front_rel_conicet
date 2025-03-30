@@ -219,3 +219,99 @@ export async function getCuadradosByTransectaAction(
     return { error: String(error) };
   }
 }
+
+/**
+ * Crea un nuevo cuadrado en un segmento
+ */
+export async function createCuadradoAction(formData: {
+  segmento_id: number;
+  replica: number;
+  tamanio: number;
+  coordenadas_inicio: string;
+  coordenadas_fin: string;
+  profundidad_inicio?: number;
+  profundidad_fin?: number;
+  conteo?: number;
+  tiene_muestreo?: string;
+}): Promise<{ data?: Tables<"cuadrados">; error?: string }> {
+  const supabase = await createClient();
+
+  try {
+    const cuadradoData = {
+      ...formData,
+      timestamp: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from("cuadrados")
+      .insert([cuadradoData])
+      .select()
+      .single();
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    revalidatePath("/campanias");
+    return { data };
+  } catch (error) {
+    console.error("Error al crear cuadrado:", error);
+    return { error: String(error) };
+  }
+}
+
+/**
+ * Obtiene el último cuadrado creado en un segmento específico
+ */
+export async function getUltimoCuadradoAction(
+  segmentoId: number
+): Promise<{ data?: any; error?: string }> {
+  const supabase = await createClient();
+
+  try {
+    const { data, error } = await supabase
+      .from("cuadrados")
+      .select("*")
+      .eq("segmento_id", segmentoId)
+      .order("replica", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error && error.code !== "PGRST116") {
+      // PGRST116 es el código cuando no se encuentra ningún registro
+      return { error: error.message };
+    }
+
+    return { data };
+  } catch (error) {
+    console.error("Error al obtener el último cuadrado:", error);
+    return { error: String(error) };
+  }
+}
+
+/**
+ * Verifica si ya existe un cuadrado con la réplica especificada en el segmento
+ */
+export async function checkCuadradoReplicaAvailabilityAction(
+  segmentoId: number,
+  replica: number
+): Promise<{ available?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  try {
+    const { data, error, count } = await supabase
+      .from("cuadrados")
+      .select("*", { count: "exact", head: true })
+      .eq("segmento_id", segmentoId)
+      .eq("replica", replica);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    return { available: count === 0 };
+  } catch (error) {
+    console.error("Error al verificar disponibilidad de réplica:", error);
+    return { error: String(error) };
+  }
+}
