@@ -4,6 +4,7 @@ import { Persona } from "../types/persona";
 import { Transecta } from "../types/transecta";
 import { mapSegmento } from "./segmentos";
 import { aseguraCoordenada, serializaCoordenada } from "../utils/coordinates";
+import { safeGetTime, safeGetDate } from "../utils/datetime";
 
 // Tipo extendido para representar el resultado del join complejo
 export type TransectaWithRelations = {
@@ -140,9 +141,9 @@ export function mapTransecta(transecta: TransectaWithRelations): Transecta {
     id: transecta.id,
     nombre: transecta.nombre || "",
     observaciones: transecta.observaciones || "",
-    fecha: transecta.fecha,
-    horaInicio: transecta.hora_inicio || "",
-    horaFin: transecta.hora_fin || "",
+    fecha: safeGetDate(transecta.fecha) || transecta.fecha,
+    horaInicio: safeGetTime(transecta.hora_inicio),
+    horaFin: safeGetTime(transecta.hora_fin),
     profundidadInicial,
     profundidadFinal,
     puntoInicio,

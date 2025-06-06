@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/accordion";
 import { Segmento } from "@/lib/types/segmento";
 import { Transecta } from "@/lib/types/transecta";
+import { safeGetTime, safeGetDate } from "@/lib/utils/datetime";
 import { NuevoSegmentoForm } from "../segmentos/nuevo-segmento-form";
 import { SegmentosTable } from "../segmentos/segmentos-table";
 
@@ -50,41 +51,49 @@ export function TransectasAccordion({
         });
       }}
     >
-      {transectas.map((transecta) => (
-        <AccordionItem key={transecta.id} value={transecta.id.toString()}>
-          <AccordionTrigger>
-            <div className="flex flex-col items-start">
-              <span className="font-semibold">{transecta.nombre}</span>
-              <span className="text-sm text-muted-foreground">
-                {transecta.fecha} - {transecta.horaInicio} a {transecta.horaFin}
-              </span>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            {cargandoSegmentos[transecta.id] ? (
-              <div
-                className="flex justify-center items-center h-32"
-                key={`loading-${transecta.id}`}
-              >
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      {transectas.map((transecta) => {
+        // Formatear fecha y horas de forma segura
+        const fechaFormatted =
+          transecta.fecha || safeGetDate(transecta.fecha) || "Fecha N/D";
+        const horaInicioFormatted = transecta.horaInicio || "N/D";
+        const horaFinFormatted = transecta.horaFin || "N/D";
+
+        return (
+          <AccordionItem key={transecta.id} value={transecta.id.toString()}>
+            <AccordionTrigger>
+              <div className="flex flex-col items-start">
+                <span className="font-semibold">{transecta.nombre}</span>
+                <span className="text-sm text-muted-foreground">
+                  {fechaFormatted} - {horaInicioFormatted} a {horaFinFormatted}
+                </span>
               </div>
-            ) : (
-              <div key={`content-${transecta.id}`}>
-                <div className="flex justify-end mb-4">
-                  <NuevoSegmentoForm
-                    transectaId={transecta.id}
-                    onSuccess={onSegmentoCreado}
+            </AccordionTrigger>
+            <AccordionContent>
+              {cargandoSegmentos[transecta.id] ? (
+                <div
+                  className="flex justify-center items-center h-32"
+                  key={`loading-${transecta.id}`}
+                >
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <div key={`content-${transecta.id}`}>
+                  <div className="flex justify-end mb-4">
+                    <NuevoSegmentoForm
+                      transectaId={transecta.id}
+                      onSuccess={onSegmentoCreado}
+                    />
+                  </div>
+                  <SegmentosTable
+                    segmentos={segmentosCargados[transecta.id] || []}
+                    onSegmentoCreado={onSegmentoCreado}
                   />
                 </div>
-                <SegmentosTable
-                  segmentos={segmentosCargados[transecta.id] || []}
-                  onSegmentoCreado={onSegmentoCreado}
-                />
-              </div>
-            )}
-          </AccordionContent>
-        </AccordionItem>
-      ))}
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        );
+      })}
     </Accordion>
   );
 }

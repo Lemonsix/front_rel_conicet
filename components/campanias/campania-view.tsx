@@ -12,7 +12,7 @@ import { Embarcacion } from "@/lib/types/embarcacion";
 import { Persona } from "@/lib/types/persona";
 import { Segmento } from "@/lib/types/segmento";
 import { Transecta } from "@/lib/types/transecta";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { TransectaModal } from "../transectas/transecta-modal";
 import { TransectaMap } from "../map/transecta-map";
@@ -32,31 +32,45 @@ interface CampaniaViewProps {
   campania: Campania;
 }
 
-export function CampaniaView({ campania }: CampaniaViewProps) {
-  // Estado para controlar la pestaña activa
-  const [activeTab, setActiveTab] = useState<string>("transectas");
+type TabValue = "transectas" | "marisqueos" | "cuadrados";
 
-  const [transectasAbiertas, setTransectasAbiertas] = useState<Set<number>>(
-    new Set()
-  );
+// Función de utilidad para ordenar transectas (fuera del componente para evitar dependencias)
+const ordenarTransectas = (transectas: Transecta[]): Transecta[] => {
+  return [...transectas].sort((a, b) => {
+    // Implementación simple pero robusta de sorting numérico-alfanumérico
+    const nameA = a.nombre || "";
+    const nameB = b.nombre || "";
 
-  // Función de utilidad para ordenar transectas numéricamente por nombre
-  const ordenarTransectas = (transectas: Transecta[]): Transecta[] => {
-    const collator = new Intl.Collator(undefined, {
+    // Comparación alfanumérica básica que funciona igual en servidor y cliente
+    return nameA.localeCompare(nameB, "es-ES", {
       numeric: true,
       sensitivity: "base",
     });
+  });
+};
 
-    return [...transectas].sort((a, b) => collator.compare(a.nombre, b.nombre));
-  };
-
-  const [transectas, setTransectas] = useState<Transecta[]>(
-    ordenarTransectas(campania.transectas || [])
+export function CampaniaView({ campania }: CampaniaViewProps) {
+  // Estados principales - inicializados de forma estable
+  const [activeTab, setActiveTab] = useState<TabValue>("transectas");
+  const [transectasAbiertas, setTransectasAbiertas] = useState<Set<number>>(
+    () => new Set()
   );
 
+  // Estados de datos - inicializados con valores estables
+  const [transectas, setTransectas] = useState<Transecta[]>(() => {
+    return campania.transectas ? ordenarTransectas(campania.transectas) : [];
+  });
   const [embarcaciones, setEmbarcaciones] = useState<Embarcacion[]>([]);
   const [buzos, setBuzos] = useState<Persona[]>([]);
+  const [marisqueos, setMarisqueos] = useState<Marisqueo[]>([]);
+  const [cuadrados, setCuadrados] = useState<Cuadrado[]>([]);
+
+  // Estados de carga
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMarisqueos, setIsLoadingMarisqueos] = useState(false);
+  const [isLoadingCuadrados, setIsLoadingCuadrados] = useState(false);
+
+  // Estados de segmentos - optimizados
   const [segmentosCargados, setSegmentosCargados] = useState<
     Record<number, Segmento[]>
   >({});
@@ -67,182 +81,130 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
     null
   );
 
-  // Estados para marisqueos y cuadrados
-  const [marisqueos, setMarisqueos] = useState<Marisqueo[]>([]);
-  const [cuadrados, setCuadrados] = useState<Cuadrado[]>([]);
-  const [isLoadingMarisqueos, setIsLoadingMarisqueos] = useState(false);
-  const [isLoadingCuadrados, setIsLoadingCuadrados] = useState(false);
+  // Función optimizada para cargar datos iniciales
+  const loadInitialData = useCallback(async () => {
+    try {
+      // Solo cargar embarcaciones y buzos, NO transectas ya que vienen con la campaña
+      const [embarcacionesResult, buzosResult] = await Promise.all([
+        getEmbarcacionesAction(),
+        getPersonasByRolAction("BUZO"),
+      ]);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        // Obtener embarcaciones
-        const { data: embarcacionesData, error: embarcacionesError } =
-          await getEmbarcacionesAction();
-        if (embarcacionesError) throw new Error(embarcacionesError);
-        setEmbarcaciones(
-          embarcacionesData?.map((e) => ({
-            id: e.id,
-            nombre: e.nombre,
-            matricula: e.matricula || "",
-          })) || []
-        );
+      if (embarcacionesResult.error) throw new Error(embarcacionesResult.error);
+      if (buzosResult.error) throw new Error(buzosResult.error);
 
-        // Obtener buzos
-        const { data: buzosData, error: buzosError } =
-          await getPersonasByRolAction("BUZO");
-        if (buzosError) throw new Error(buzosError);
-        setBuzos(buzosData || []);
+      setEmbarcaciones(
+        embarcacionesResult.data?.map((e) => ({
+          id: e.id,
+          nombre: e.nombre,
+          matricula: e.matricula || "",
+        })) || []
+      );
 
-        // Obtener transectas de la campaña
-        const { data: transectasData, error: transectasError } =
-          await getTransectasByCampaniaAction(campania.id);
-        if (transectasError) throw new Error(transectasError);
-        if (transectasData) {
-          const transectasMapeadas = mapTransectas(transectasData);
-          setTransectas(ordenarTransectas(transectasMapeadas));
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        toast.error("Error al cargar los datos");
-      } finally {
-        setIsLoading(false);
-      }
+      setBuzos(buzosResult.data || []);
+    } catch (error) {
+      console.error("Error loading initial data:", error);
+      toast.error("Error al cargar los datos iniciales");
+    } finally {
+      setIsLoading(false);
     }
-
-    fetchData();
   }, [campania.id]);
 
-  // Cargar marisqueos cuando se selecciona la pestaña correspondiente
-  useEffect(() => {
-    if (
-      activeTab === "marisqueos" &&
-      marisqueos.length === 0 &&
-      !isLoadingMarisqueos
-    ) {
-      loadMarisqueos();
-    }
-  }, [activeTab, marisqueos.length]);
+  // Función optimizada para cargar marisqueos
+  const loadMarisqueos = useCallback(async () => {
+    if (isLoadingMarisqueos) return;
 
-  // Cargar cuadrados cuando se selecciona la pestaña correspondiente
-  useEffect(() => {
-    if (
-      activeTab === "cuadrados" &&
-      cuadrados.length === 0 &&
-      !isLoadingCuadrados
-    ) {
-      loadCuadrados();
-    }
-  }, [activeTab, cuadrados.length]);
-
-  const loadMarisqueos = async () => {
     setIsLoadingMarisqueos(true);
     try {
       const { data, error } = await getMarisqueosByCampaniaAction(campania.id);
-      if (error) {
-        throw new Error(error);
-      }
+      if (error) throw new Error(error);
       setMarisqueos(data || []);
     } catch (error) {
-      console.error("Error cargando marisqueos:", error);
+      console.error("Error loading marisqueos:", error);
       toast.error("Error al cargar los marisqueos");
     } finally {
       setIsLoadingMarisqueos(false);
     }
-  };
+  }, [campania.id, isLoadingMarisqueos]);
 
-  const loadCuadrados = async () => {
+  // Función optimizada para cargar cuadrados
+  const loadCuadrados = useCallback(async () => {
+    if (isLoadingCuadrados) return;
+
     setIsLoadingCuadrados(true);
     try {
       const { data, error } = await getCuadradosByCampaniaAction(campania.id);
-      if (error) {
-        throw new Error(error);
-      }
+      if (error) throw new Error(error);
       setCuadrados(data || []);
     } catch (error) {
-      console.error("Error cargando cuadrados:", error);
+      console.error("Error loading cuadrados:", error);
       toast.error("Error al cargar los cuadrados");
     } finally {
       setIsLoadingCuadrados(false);
     }
-  };
+  }, [campania.id, isLoadingCuadrados]);
 
-  const handleTransectaOpen = async (transectaId: number) => {
-    setTransectasAbiertas((prev) => new Set([...prev, transectaId]));
-
-    // Si ya tenemos los segmentos cargados, no los volvemos a cargar
-    if (segmentosCargados[transectaId]) {
-      return;
-    }
-
-    setCargandoSegmentos((prev) => ({ ...prev, [transectaId]: true }));
-    try {
-      const result = await getSegmentosByTransectaAction(transectaId);
-      if (result.error) {
-        throw new Error(result.error);
+  // Función optimizada para cargar segmentos
+  const loadSegmentos = useCallback(
+    async (transectaId: number) => {
+      if (segmentosCargados[transectaId] || cargandoSegmentos[transectaId]) {
+        return;
       }
 
-      if (!result.data) {
-        throw new Error("No se encontraron datos");
+      setCargandoSegmentos((prev) => ({ ...prev, [transectaId]: true }));
+      try {
+        const result = await getSegmentosByTransectaAction(transectaId);
+        if (result.error) throw new Error(result.error);
+        if (!result.data) throw new Error("No se encontraron datos");
+
+        const segmentosMapeados = mapSegmentosFunction(result.data);
+        setSegmentosCargados((prev) => ({
+          ...prev,
+          [transectaId]: segmentosMapeados as Segmento[],
+        }));
+      } catch (error) {
+        console.error("Error loading segments:", error);
+        toast.error("Error al cargar los segmentos");
+      } finally {
+        setCargandoSegmentos((prev) => ({ ...prev, [transectaId]: false }));
       }
+    },
+    [segmentosCargados, cargandoSegmentos]
+  );
 
-      const segmentosMapeados = mapSegmentosFunction(result.data);
+  // Handlers optimizados
+  const handleTransectaOpen = useCallback(
+    async (transectaId: number) => {
+      setTransectasAbiertas((prev) => new Set([...prev, transectaId]));
+      await loadSegmentos(transectaId);
+    },
+    [loadSegmentos]
+  );
 
-      setSegmentosCargados((prev) => ({
-        ...prev,
-        [transectaId]: segmentosMapeados as Segmento[],
-      }));
-    } catch (error) {
-      console.error("Error cargando segmentos:", error);
-      toast.error("Error al cargar los segmentos");
-    } finally {
-      setCargandoSegmentos((prev) => ({ ...prev, [transectaId]: false }));
-    }
-  };
-
-  const handleTransectaClose = (transectaId: number) => {
+  const handleTransectaClose = useCallback((transectaId: number) => {
     setTransectasAbiertas((prev) => {
       const next = new Set(prev);
       next.delete(transectaId);
       return next;
     });
-  };
+  }, []);
 
-  const handleSegmentoCreado = async () => {
-    try {
-      // Recargar los segmentos de todas las transectas abiertas
-      for (const transectaId of transectasAbiertas) {
-        setCargandoSegmentos((prev) => ({ ...prev, [transectaId]: true }));
-        try {
-          const result = await getSegmentosByTransectaAction(transectaId);
-          if (result.error) {
-            throw new Error(result.error);
-          }
+  const handleSegmentoCreado = useCallback(async () => {
+    const transectaIds = Array.from(transectasAbiertas);
+    await Promise.all(
+      transectaIds.map(async (transectaId) => {
+        // Invalidar cache y recargar
+        setSegmentosCargados((prev) => {
+          const next = { ...prev };
+          delete next[transectaId];
+          return next;
+        });
+        await loadSegmentos(transectaId);
+      })
+    );
+  }, [transectasAbiertas, loadSegmentos]);
 
-          if (!result.data) {
-            throw new Error("No se encontraron datos");
-          }
-
-          const segmentosMapeados = mapSegmentosFunction(result.data);
-
-          setSegmentosCargados((prev) => ({
-            ...prev,
-            [transectaId]: segmentosMapeados as Segmento[],
-          }));
-        } catch (error) {
-          console.error("Error cargando segmentos:", error);
-          toast.error("Error al cargar los segmentos");
-        } finally {
-          setCargandoSegmentos((prev) => ({ ...prev, [transectaId]: false }));
-        }
-      }
-    } catch (error) {
-      console.error("Error recargando segmentos:", error);
-      toast.error("Error al actualizar los datos");
-    }
-  };
-
-  const refreshTransectas = async () => {
+  const refreshTransectas = useCallback(async () => {
     setIsLoading(true);
     try {
       const { data: transectasData, error: transectasError } =
@@ -254,13 +216,10 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
         const transectasMapeadas = mapTransectas(transectasData);
         setTransectas(ordenarTransectas(transectasMapeadas));
 
-        // Also refresh any loaded segments for existing transectas
+        // Recargar segmentos de transectas abiertas
         if (transectasAbiertas.size > 0) {
-          await Promise.all(
-            Array.from(transectasAbiertas).map(async (transectaId) => {
-              await handleTransectaOpen(transectaId);
-            })
-          );
+          const transectaIds = Array.from(transectasAbiertas);
+          await Promise.all(transectaIds.map(loadSegmentos));
         }
 
         toast.success("Transectas actualizadas correctamente");
@@ -271,13 +230,33 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [campania.id, transectasAbiertas, loadSegmentos]);
 
-  // Get map segments for the selected transecta
-  const segmentosParaMapa =
-    selectedTransectaId !== null && segmentosCargados[selectedTransectaId]
+  // Efecto para cargar datos iniciales
+  useEffect(() => {
+    loadInitialData();
+  }, [loadInitialData]);
+
+  // Efectos para carga lazy de pestañas
+  useEffect(() => {
+    if (activeTab === "marisqueos" && marisqueos.length === 0) {
+      loadMarisqueos();
+    }
+  }, [activeTab, marisqueos.length, loadMarisqueos]);
+
+  useEffect(() => {
+    if (activeTab === "cuadrados" && cuadrados.length === 0) {
+      loadCuadrados();
+    }
+  }, [activeTab, cuadrados.length, loadCuadrados]);
+
+  // Segmentos para el mapa - memoizados
+  const segmentosParaMapa = useMemo(() => {
+    return selectedTransectaId !== null &&
+      segmentosCargados[selectedTransectaId]
       ? segmentosCargados[selectedTransectaId]
       : [];
+  }, [selectedTransectaId, segmentosCargados]);
 
   return (
     <div
@@ -302,7 +281,7 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
       <Tabs
         defaultValue="transectas"
         value={activeTab}
-        onValueChange={setActiveTab}
+        onValueChange={(value) => setActiveTab(value as TabValue)}
         className="w-full flex-1 flex flex-col min-h-0"
       >
         <TabsList className="mb-4">

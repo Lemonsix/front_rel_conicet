@@ -11,6 +11,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Segmento } from "@/lib/types/segmento";
 import { Transecta } from "@/lib/types/transecta";
+import { safeGetTime, safeGetDate } from "@/lib/utils/datetime";
 import { ArrowLeft } from "lucide-react";
 import { NuevoSegmentoForm } from "../segmentos/nuevo-segmento-form";
 import { SegmentosTable } from "../segmentos/segmentos-table";
@@ -34,6 +35,12 @@ export function TransectaDetails({
   const hasMarisqueo = segmentos.some((seg) => seg.tieneMarisqueo);
   const hasCuadrados = segmentos.some((seg) => seg.tieneCuadrados);
 
+  // Formatear fecha y horas de forma segura
+  const fechaFormatted =
+    transecta.fecha || safeGetDate(transecta.fecha) || "Fecha N/D";
+  const horaInicioFormatted = transecta.horaInicio || "";
+  const horaFinFormatted = transecta.horaFin || "";
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -52,8 +59,7 @@ export function TransectaDetails({
         <CardHeader>
           <CardTitle>Información de la transecta</CardTitle>
           <CardDescription>
-            {transecta.fecha} ({transecta.horaInicio || ""} -{" "}
-            {transecta.horaFin || ""})
+            {fechaFormatted} ({horaInicioFormatted} - {horaFinFormatted})
           </CardDescription>
         </CardHeader>
         <CardContent>

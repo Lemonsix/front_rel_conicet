@@ -37,6 +37,10 @@ export function TransectaCard({
   const puntoInicioStr = transecta.puntoInicio?.sexagesimal;
   const puntoFinStr = transecta.puntoFin?.sexagesimal;
 
+  // Formatear horas de forma segura - ya vienen procesadas del mapper
+  const horaInicioFormatted = transecta.horaInicio || "N/D";
+  const horaFinFormatted = transecta.horaFin || "N/D";
+
   return (
     <Card
       className="cursor-pointer border border-transparent transition-colors w-full hover:border-gray-400 hover:shadow-md"
@@ -73,7 +77,7 @@ export function TransectaCard({
           <div className="flex items-center text-sm text-muted-foreground">
             <CalendarIcon className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
             <span className="truncate">
-              {transecta.horaInicio} - {transecta.horaFin}
+              {horaInicioFormatted} - {horaFinFormatted}
             </span>
           </div>
 
