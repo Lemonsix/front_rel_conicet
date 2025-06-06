@@ -36,13 +36,10 @@ export async function getTransectasByCampaniaAction(
         hora_inicio,
         hora_fin,
         profundidad_inicial,
-        profundidad_final,
         sentido,
         embarcacion_id,
         buzo_id,
-        campania_id,
-        coordenadas_inicio,
-        coordenadas_fin
+        campania_id
       `
       )
       .eq("campania_id", campaniaId);
@@ -60,11 +57,11 @@ export async function getTransectasByCampaniaAction(
     // Función auxiliar para ordenación numérica natural
     const collator = new Intl.Collator(undefined, {
       numeric: true,
-      sensitivity: 'base'
+      sensitivity: "base",
     });
 
     // Ordenar transectas por nombre usando ordenación numérica natural
-    const transectasOrdenadas = [...transectas].sort((a, b) => 
+    const transectasOrdenadas = [...transectas].sort((a, b) =>
       collator.compare(a.nombre, b.nombre)
     );
 
@@ -359,7 +356,10 @@ export async function getTransectasByCampaniaAction(
     }));
 
     // Verificar ordenamiento final
-    console.log("Nombres ordenados:", transectasMapeadas.map(t => t.nombre).join(", "));
+    console.log(
+      "Nombres ordenados:",
+      transectasMapeadas.map((t) => t.nombre).join(", ")
+    );
     console.log("Transectas mapeadas final:", resumenFinal);
 
     revalidatePath(`/campanias/${campaniaId}`);
