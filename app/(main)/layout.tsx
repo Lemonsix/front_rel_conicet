@@ -8,9 +8,9 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider className="h-screen">
+    <SidebarProvider className="h-screen w-screen">
       <AppSidebar />
-      <main className="flex flex-col h-full overflow-hidden w-full">
+      <main className="flex flex-col h-full  w-full">
         <SidebarTrigger />
         {children}
       </main>

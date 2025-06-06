@@ -323,15 +323,18 @@ export function NuevoSegmentoForm({
         coordFinDecimal.longitud
       );
 
+      // Determinar la profundidad inicial correcta
+      const profundidadInicial = esPrimerSegmento
+        ? values.profundidad_inicial
+        : ultimoSegmento?.profundidadFinal || 0;
+
       const result = await createSegmentoAction({
         transecta_id: transectaId,
         numero: values.numero,
         coordenadas_inicio: coordenadaInicio.wkb,
         coordenadas_fin: coordenadaFin.wkb,
         profundidad_final: values.profundidad_final,
-        profundidad_inicial: esPrimerSegmento
-          ? values.profundidad_inicial
-          : undefined,
+        profundidad_inicial: profundidadInicial,
         sustrato_id: parseInt(values.sustratoId),
         conteo: values.conteo,
         largo,
@@ -520,28 +523,7 @@ export function NuevoSegmentoForm({
                             </FormItem>
                           )}
                         />
-                        <FormField
-                          control={form.control}
-                          name="coordenadas_inicio.latitud.direccion"
-                          render={({ field }) => (
-                            <FormItem>
-                              <Select
-                                onValueChange={field.onChange}
-                                value={field.value}
-                              >
-                                <FormControl>
-                                  <SelectTrigger className="w-[70px]">
-                                    <SelectValue placeholder="Dir" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="N">N</SelectItem>
-                                  <SelectItem value="S">S</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </FormItem>
-                          )}
-                        />
+                        <span className="ml-2 text-sm font-medium">S</span>
                       </div>
                     </div>
 
@@ -597,28 +579,7 @@ export function NuevoSegmentoForm({
                             </FormItem>
                           )}
                         />
-                        <FormField
-                          control={form.control}
-                          name="coordenadas_inicio.longitud.direccion"
-                          render={({ field }) => (
-                            <FormItem>
-                              <Select
-                                onValueChange={field.onChange}
-                                value={field.value}
-                              >
-                                <FormControl>
-                                  <SelectTrigger className="w-[70px]">
-                                    <SelectValue placeholder="Dir" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="E">E</SelectItem>
-                                  <SelectItem value="O">O</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </FormItem>
-                          )}
-                        />
+                        <span className="ml-2 text-sm font-medium">O</span>
                       </div>
                     </div>
                   </div>
@@ -743,28 +704,7 @@ export function NuevoSegmentoForm({
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="coordenadas_fin.latitud.direccion"
-                        render={({ field }) => (
-                          <FormItem>
-                            <Select
-                              onValueChange={field.onChange}
-                              value={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger className="w-[70px]">
-                                  <SelectValue placeholder="Dir" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="N">N</SelectItem>
-                                <SelectItem value="S">S</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FormItem>
-                        )}
-                      />
+                      <span className="ml-2 text-sm font-medium">S</span>
                     </div>
                   </div>
 
@@ -820,28 +760,7 @@ export function NuevoSegmentoForm({
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="coordenadas_fin.longitud.direccion"
-                        render={({ field }) => (
-                          <FormItem>
-                            <Select
-                              onValueChange={field.onChange}
-                              value={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger className="w-[70px]">
-                                  <SelectValue placeholder="Dir" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="E">E</SelectItem>
-                                <SelectItem value="O">O</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FormItem>
-                        )}
-                      />
+                      <span className="ml-2 text-sm font-medium">O</span>
                     </div>
                   </div>
                 </div>

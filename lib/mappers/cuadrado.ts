@@ -15,36 +15,26 @@ export function mapCuadrado(cuadradoDb: Tables<"cuadrados">): Cuadrado {
   let coordenadasInicio: Coordenada | null = null;
   let coordenadasFin: Coordenada | null = null;
 
-  // Si es GeoJSON
-  if (coordInicio.includes('"type":"Point"')) {
-    coordenadasInicio = Coordenada.fromGeoJSON(coordInicio);
-  }
-  // Si es WKB
-  else if (
-    coordInicio.startsWith("SRID=4326;POINT") ||
-    coordInicio.startsWith("0101000020E6100000")
-  ) {
-    const isHex = coordInicio.startsWith("0101000020E6100000");
-    coordenadasInicio = isHex
-      ? Coordenada.fromWKBHex(coordInicio)
-      : coordInicio
-      ? Coordenada.fromWKT(coordInicio)
-      : null;
+  // Procesar coordenadas inicio según su formato
+  if (coordInicio) {
+    if (coordInicio.includes('"type":"Point"')) {
+      coordenadasInicio = Coordenada.fromGeoJSON(coordInicio);
+    } else if (coordInicio.startsWith("SRID=4326;POINT")) {
+      coordenadasInicio = Coordenada.fromWKT(coordInicio);
+    } else if (coordInicio.startsWith("0101000020E6100000")) {
+      coordenadasInicio = Coordenada.fromWKBHex(coordInicio);
+    }
   }
 
-  // Mismo proceso para coordenadas fin
-  if (coordFin.includes('"type":"Point"')) {
-    coordenadasFin = Coordenada.fromGeoJSON(coordFin);
-  } else if (
-    coordFin.startsWith("SRID=4326;POINT") ||
-    coordFin.startsWith("0101000020E6100000")
-  ) {
-    const isHex = coordFin.startsWith("0101000020E6100000");
-    coordenadasFin = isHex
-      ? Coordenada.fromWKBHex(coordFin)
-      : coordFin
-      ? Coordenada.fromWKT(coordFin)
-      : null;
+  // Procesar coordenadas fin según su formato
+  if (coordFin) {
+    if (coordFin.includes('"type":"Point"')) {
+      coordenadasFin = Coordenada.fromGeoJSON(coordFin);
+    } else if (coordFin.startsWith("SRID=4326;POINT")) {
+      coordenadasFin = Coordenada.fromWKT(coordFin);
+    } else if (coordFin.startsWith("0101000020E6100000")) {
+      coordenadasFin = Coordenada.fromWKBHex(coordFin);
+    }
   }
 
   return {

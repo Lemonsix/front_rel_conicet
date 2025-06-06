@@ -4,30 +4,31 @@ import { createClient } from "@/lib/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { Tables } from "@/lib/types/database.types";
 
-// Definir la estructura de un Cuadrado
-export interface Cuadrado {
+// Definir la estructura de un Marisqueo
+export interface Marisqueo {
   id: number;
   segmento_id: number;
   transecta_id: number;
+  buzo_id: number;
   nombre_transecta: string;
+  nombre_buzo?: string;
   numero_segmento: number;
   fecha: string;
-  replica: number;
-  tamanio: number;
-  profundidad_inicio?: number | null;
-  profundidad_fin?: number | null;
-  conteo?: number | null;
-  tiene_muestreo?: string | null;
+  n_captura: number;
+  profundidad?: number | null;
+  tiempo?: number | null;
+  peso_muestra?: number | null;
+  tiene_muestreo?: boolean | null;
   observaciones?: string;
 }
 
 /**
- * Obtiene todos los cuadrados asociados a una campaña
+ * Obtiene todos los marisqueos asociados a una campaña
  */
-export async function getCuadradosByCampaniaAction(
+export async function getMarisqueosByCampaniaAction(
   campaniaId: number
 ): Promise<{
-  data?: Cuadrado[];
+  data?: Marisqueo[];
   error?: string;
 }> {
   const supabase = await createClient();
@@ -69,67 +70,69 @@ export async function getCuadradosByCampaniaAction(
     // Obtenemos los IDs de todos los segmentos
     const segmentosIds = segmentos.map((s) => s.id);
 
-    // Consultamos la tabla de cuadrados para los segmentos
-    const { data: cuadradosData, error: cuadradosError } = await supabase
-      .from("cuadrados")
-      .select("*")
+    // Consultamos la tabla de marisqueos
+    const { data: marisqueosData, error: marisqueosError } = await supabase
+      .from("marisqueos")
+      .select("*, buzo:buzo_id(id, nombre, apellido)")
       .in("segmento_id", segmentosIds);
 
-    if (cuadradosError) {
-      console.error("Error al obtener cuadrados:", cuadradosError);
-      return { error: cuadradosError.message };
+    if (marisqueosError) {
+      console.error("Error al obtener marisqueos:", marisqueosError);
+      return { error: marisqueosError.message };
     }
 
-    // Si no hay cuadrados, retornamos array vacío
-    if (!cuadradosData || cuadradosData.length === 0) {
+    // Si no hay marisqueos, retornamos array vacío
+    if (!marisqueosData || marisqueosData.length === 0) {
       return { data: [] };
     }
 
-    // Creamos mapas para buscar datos rápidamente
+    // Creamos mapas para búsquedas rápidas
     const transectasMap = new Map(transectas.map((t) => [t.id, t]));
     const segmentosMap = new Map(segmentos.map((s) => [s.id, s]));
 
     // Transformamos los datos a nuestro formato de respuesta
-    const cuadradosMapeados = cuadradosData.map(
-      (cuadrado: Tables<"cuadrados">) => {
-        const segmento = segmentosMap.get(cuadrado.segmento_id);
-        const transectaId = segmento?.transecta_id || 0;
-        const transecta = transectasMap.get(transectaId);
+    const marisqueosMapeados = marisqueosData.map((marisqueo: any) => {
+      const segmento = segmentosMap.get(marisqueo.segmento_id);
+      const transectaId = segmento?.transecta_id || 0;
+      const transecta = transectasMap.get(transectaId);
+      const buzoInfo = marisqueo.buzo;
 
-        return {
-          id: cuadrado.id,
-          segmento_id: cuadrado.segmento_id,
-          transecta_id: transectaId,
-          nombre_transecta: transecta?.nombre || `Transecta ${transectaId}`,
-          numero_segmento: segmento?.numero || 0,
-          fecha: transecta?.fecha || new Date().toISOString().split("T")[0],
-          replica: cuadrado.replica,
-          tamanio: cuadrado.tamanio,
-          profundidad_inicio: cuadrado.profundidad_inicio,
-          profundidad_fin: cuadrado.profundidad_fin,
-          conteo: cuadrado.conteo,
-          tiene_muestreo: cuadrado.tiene_muestreo,
-          observaciones: `Cuadrado ${cuadrado.replica} en segmento ${
-            segmento?.numero || 0
-          }`,
-        };
-      }
-    );
+      return {
+        id: marisqueo.id,
+        segmento_id: marisqueo.segmento_id,
+        transecta_id: transectaId,
+        buzo_id: marisqueo.buzo_id,
+        nombre_transecta: transecta?.nombre || `Transecta ${transectaId}`,
+        nombre_buzo: buzoInfo
+          ? `${buzoInfo.nombre} ${buzoInfo.apellido}`
+          : undefined,
+        numero_segmento: segmento?.numero || 0,
+        fecha: transecta?.fecha || new Date().toISOString().split("T")[0],
+        n_captura: marisqueo.n_captura,
+        profundidad: marisqueo.profundidad,
+        tiempo: marisqueo.tiempo,
+        peso_muestra: marisqueo.peso_muestra,
+        tiene_muestreo: marisqueo.tiene_muestreo,
+        observaciones: `Marisqueo ${marisqueo.n_captura} en segmento ${
+          segmento?.numero || 0
+        }`,
+      };
+    });
 
-    return { data: cuadradosMapeados };
+    return { data: marisqueosMapeados };
   } catch (error) {
-    console.error("Error al obtener cuadrados:", error);
+    console.error("Error al obtener marisqueos:", error);
     return { error: String(error) };
   }
 }
 
 /**
- * Obtiene todos los cuadrados asociados a una transecta específica
+ * Obtiene todos los marisqueos asociados a una transecta específica
  */
-export async function getCuadradosByTransectaAction(
+export async function getMarisqueosByTransectaAction(
   transectaId: number
 ): Promise<{
-  data?: Cuadrado[];
+  data?: Marisqueo[];
   error?: string;
 }> {
   const supabase = await createClient();
@@ -169,19 +172,19 @@ export async function getCuadradosByTransectaAction(
     // Obtenemos los IDs de todos los segmentos
     const segmentosIds = segmentos.map((s) => s.id);
 
-    // Consultamos la tabla de cuadrados
-    const { data: cuadradosData, error: cuadradosError } = await supabase
-      .from("cuadrados")
-      .select("*")
+    // Consultamos la tabla de marisqueos
+    const { data: marisqueosData, error: marisqueosError } = await supabase
+      .from("marisqueos")
+      .select("*, buzo:buzo_id(id, nombre, apellido)")
       .in("segmento_id", segmentosIds);
 
-    if (cuadradosError) {
-      console.error("Error al obtener cuadrados:", cuadradosError);
-      return { error: cuadradosError.message };
+    if (marisqueosError) {
+      console.error("Error al obtener marisqueos:", marisqueosError);
+      return { error: marisqueosError.message };
     }
 
-    // Si no hay cuadrados, retornamos array vacío
-    if (!cuadradosData || cuadradosData.length === 0) {
+    // Si no hay marisqueos, retornamos array vacío
+    if (!marisqueosData || marisqueosData.length === 0) {
       return { data: [] };
     }
 
@@ -189,62 +192,63 @@ export async function getCuadradosByTransectaAction(
     const segmentosMap = new Map(segmentos.map((s) => [s.id, s]));
 
     // Transformamos los datos a nuestro formato de respuesta
-    const cuadradosMapeados = cuadradosData.map(
-      (cuadrado: Tables<"cuadrados">) => {
-        const segmento = segmentosMap.get(cuadrado.segmento_id);
+    const marisqueosMapeados = marisqueosData.map((marisqueo: any) => {
+      const segmento = segmentosMap.get(marisqueo.segmento_id);
+      const buzoInfo = marisqueo.buzo;
 
-        return {
-          id: cuadrado.id,
-          segmento_id: cuadrado.segmento_id,
-          transecta_id: transectaId,
-          nombre_transecta: transecta.nombre || `Transecta ${transectaId}`,
-          numero_segmento: segmento?.numero || 0,
-          fecha: transecta.fecha,
-          replica: cuadrado.replica,
-          tamanio: cuadrado.tamanio,
-          profundidad_inicio: cuadrado.profundidad_inicio,
-          profundidad_fin: cuadrado.profundidad_fin,
-          conteo: cuadrado.conteo,
-          tiene_muestreo: cuadrado.tiene_muestreo,
-          observaciones: `Cuadrado ${cuadrado.replica} en segmento ${
-            segmento?.numero || 0
-          }`,
-        };
-      }
-    );
+      return {
+        id: marisqueo.id,
+        segmento_id: marisqueo.segmento_id,
+        transecta_id: transectaId,
+        buzo_id: marisqueo.buzo_id,
+        nombre_transecta: transecta.nombre || `Transecta ${transectaId}`,
+        nombre_buzo: buzoInfo
+          ? `${buzoInfo.nombre} ${buzoInfo.apellido}`
+          : undefined,
+        numero_segmento: segmento?.numero || 0,
+        fecha: transecta.fecha,
+        n_captura: marisqueo.n_captura,
+        profundidad: marisqueo.profundidad,
+        tiempo: marisqueo.tiempo,
+        peso_muestra: marisqueo.peso_muestra,
+        tiene_muestreo: marisqueo.tiene_muestreo,
+        observaciones: `Marisqueo ${marisqueo.n_captura} en segmento ${
+          segmento?.numero || 0
+        }`,
+      };
+    });
 
-    return { data: cuadradosMapeados };
+    return { data: marisqueosMapeados };
   } catch (error) {
-    console.error("Error al obtener cuadrados:", error);
+    console.error("Error al obtener marisqueos:", error);
     return { error: String(error) };
   }
 }
 
 /**
- * Crea un nuevo cuadrado en un segmento
+ * Crea un nuevo marisqueo en un segmento
  */
-export async function createCuadradoAction(formData: {
+export async function createMarisqueoAction(formData: {
   segmento_id: number;
-  replica: number;
-  tamanio: number;
-  coordenadas_inicio: string;
-  coordenadas_fin: string;
-  profundidad_inicio?: number;
-  profundidad_fin?: number;
-  conteo?: number;
-  tiene_muestreo?: string;
-}): Promise<{ data?: Tables<"cuadrados">; error?: string }> {
+  buzo_id: number;
+  n_captura: number;
+  coordenadas?: string;
+  profundidad?: number;
+  tiempo?: number;
+  peso_muestra?: number;
+  observaciones?: string;
+}): Promise<{ data?: Tables<"marisqueos">; error?: string }> {
   const supabase = await createClient();
 
   try {
-    const cuadradoData = {
+    const marisqueoData = {
       ...formData,
       timestamp: new Date().toISOString(),
     };
 
     const { data, error } = await supabase
-      .from("cuadrados")
-      .insert([cuadradoData])
+      .from("marisqueos")
+      .insert([marisqueoData])
       .select()
       .single();
 
@@ -255,25 +259,25 @@ export async function createCuadradoAction(formData: {
     revalidatePath("/campanias");
     return { data };
   } catch (error) {
-    console.error("Error al crear cuadrado:", error);
+    console.error("Error al crear marisqueo:", error);
     return { error: String(error) };
   }
 }
 
 /**
- * Obtiene el último cuadrado creado en un segmento específico
+ * Obtiene el último marisqueo creado en un segmento específico
  */
-export async function getUltimoCuadradoAction(
+export async function getUltimoMarisqueoAction(
   segmentoId: number
 ): Promise<{ data?: any; error?: string }> {
   const supabase = await createClient();
 
   try {
     const { data, error } = await supabase
-      .from("cuadrados")
+      .from("marisqueos")
       .select("*")
       .eq("segmento_id", segmentoId)
-      .order("replica", { ascending: false })
+      .order("n_captura", { ascending: false })
       .limit(1)
       .single();
 
@@ -284,26 +288,26 @@ export async function getUltimoCuadradoAction(
 
     return { data };
   } catch (error) {
-    console.error("Error al obtener el último cuadrado:", error);
+    console.error("Error al obtener el último marisqueo:", error);
     return { error: String(error) };
   }
 }
 
 /**
- * Verifica si ya existe un cuadrado con la réplica especificada en el segmento
+ * Verifica si ya existe un marisqueo con el número de captura especificado en el segmento
  */
-export async function checkCuadradoReplicaAvailabilityAction(
+export async function checkMarisqueoCapturaAvailabilityAction(
   segmentoId: number,
-  replica: number
+  nCaptura: number
 ): Promise<{ available?: boolean; error?: string }> {
   const supabase = await createClient();
 
   try {
     const { data, error, count } = await supabase
-      .from("cuadrados")
+      .from("marisqueos")
       .select("*", { count: "exact", head: true })
       .eq("segmento_id", segmentoId)
-      .eq("replica", replica);
+      .eq("n_captura", nCaptura);
 
     if (error) {
       return { error: error.message };
@@ -311,7 +315,7 @@ export async function checkCuadradoReplicaAvailabilityAction(
 
     return { available: count === 0 };
   } catch (error) {
-    console.error("Error al verificar disponibilidad de réplica:", error);
+    console.error("Error al verificar disponibilidad de captura:", error);
     return { error: String(error) };
   }
 }

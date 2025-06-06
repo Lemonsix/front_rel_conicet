@@ -235,7 +235,7 @@ export type Database = {
         Row: {
           buzo: string | null
           date: string
-          orientacion: string | null
+          sentido: string | null
           replica: string | null
           transect_id: number
           transecta: string | null
@@ -243,7 +243,7 @@ export type Database = {
         Insert: {
           buzo?: string | null
           date: string
-          orientacion?: string | null
+          sentido?: string | null
           replica?: string | null
           transect_id: number
           transecta?: string | null
@@ -251,7 +251,7 @@ export type Database = {
         Update: {
           buzo?: string | null
           date?: string
-          orientacion?: string | null
+          sentido?: string | null
           replica?: string | null
           transect_id?: number
           transecta?: string | null
@@ -444,7 +444,7 @@ export type Database = {
           min_longi: number | null
           nombre: string | null
           observaciones: string | null
-          orientacion: string | null
+          sentido: string | null
           planillero_id: number | null
           profundidad_inicial: number | null
           replica: boolean | null
@@ -465,7 +465,7 @@ export type Database = {
           min_longi?: number | null
           nombre?: string | null
           observaciones?: string | null
-          orientacion?: string | null
+          sentido?: string | null
           planillero_id?: number | null
           profundidad_inicial?: number | null
           replica?: boolean | null
@@ -486,7 +486,7 @@ export type Database = {
           min_longi?: number | null
           nombre?: string | null
           observaciones?: string | null
-          orientacion?: string | null
+          sentido?: string | null
           planillero_id?: number | null
           profundidad_inicial?: number | null
           replica?: boolean | null

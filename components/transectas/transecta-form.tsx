@@ -41,7 +41,7 @@ const formSchema = z.object({
   fecha: z.string().min(1, "La fecha es requerida"),
   hora_inicio: z.string().min(1, "La hora de inicio es requerida"),
   hora_fin: z.string().min(1, "La hora de fin es requerida"),
-  orientacion: z.string().min(1, "La orientación es requerida"),
+  sentido: z.string().min(1, "El sentido es requerido"),
   embarcacion_id: z.string().optional(),
   buzo_id: z.string().optional(),
 });
@@ -71,6 +71,8 @@ export function TransectaForm({
   const [isLoading, setIsLoading] = useState(false);
   const [nombresTransectas, setNombresTransectas] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
+  const [openBuzo, setOpenBuzo] = useState(false);
+  const [filteredBuzos, setFilteredBuzos] = useState(buzos);
 
   useEffect(() => {
     async function fetchNombres() {
@@ -95,7 +97,7 @@ export function TransectaForm({
       fecha: "",
       hora_inicio: "",
       hora_fin: "",
-      orientacion: "",
+      sentido: "",
       embarcacion_id: "",
       buzo_id: "",
     },
@@ -113,7 +115,7 @@ export function TransectaForm({
         `${values.fecha}T${values.hora_fin}`
       ).toISOString();
 
-      const { error } = await createTransectaAction({
+      const { data, error } = await createTransectaAction({
         ...values,
         hora_inicio,
         hora_fin,
@@ -129,9 +131,18 @@ export function TransectaForm({
         throw new Error(error);
       }
 
+      console.log("Transecta creada correctamente:", data);
       toast.success("La transecta se ha creado correctamente");
       form.reset();
-      onSuccess?.();
+      
+      // Make sure to call onSuccess
+      if (onSuccess) {
+        try {
+          await onSuccess();
+        } catch (callbackError) {
+          console.error("Error en callback onSuccess:", callbackError);
+        }
+      }
     } catch (error) {
       console.error("Error completo:", error);
       toast.error(
@@ -272,17 +283,17 @@ export function TransectaForm({
 
           <FormField
             control={form.control}
-            name="orientacion"
+            name="sentido"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Orientación</FormLabel>
+                <FormLabel>Sentido</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecciona una orientación" />
+                      <SelectValue placeholder="Selecciona un sentido" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -334,23 +345,90 @@ export function TransectaForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Buzo</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona un buzo" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {buzos.map((buzo) => (
-                      <SelectItem key={buzo.id} value={buzo.id.toString()}>
-                        {buzo.nombre} {buzo.apellido}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={openBuzo} onOpenChange={setOpenBuzo}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openBuzo}
+                        className="w-full justify-between"
+                      >
+                        {field.value
+                          ? buzos.find(
+                              (buzo) => buzo.id.toString() === field.value
+                            )
+                            ? `${
+                                buzos.find(
+                                  (buzo) => buzo.id.toString() === field.value
+                                )?.nombre
+                              } ${
+                                buzos.find(
+                                  (buzo) => buzo.id.toString() === field.value
+                                )?.apellido
+                              }`
+                            : "Selecciona un buzo..."
+                          : "Selecciona un buzo..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <div className="flex flex-col">
+                      <div className="flex items-center border-b px-3">
+                        <Input
+                          placeholder="Buscar buzo..."
+                          className="h-11 border-0 focus-visible:ring-0"
+                          onChange={(e) => {
+                            const searchTerm = e.target.value.toLowerCase();
+                            const filtered = buzos.filter(
+                              (buzo) =>
+                                buzo.nombre
+                                  .toLowerCase()
+                                  .includes(searchTerm) ||
+                                buzo.apellido.toLowerCase().includes(searchTerm)
+                            );
+                            setFilteredBuzos(filtered);
+                          }}
+                        />
+                      </div>
+                      <div className="max-h-[300px] overflow-y-auto">
+                        {filteredBuzos.length === 0 ? (
+                          <div className="py-6 text-center text-sm">
+                            No se encontraron buzos.
+                          </div>
+                        ) : (
+                          <div className="p-1">
+                            {filteredBuzos.map((buzo) => (
+                              <div
+                                key={buzo.id}
+                                className={cn(
+                                  "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                                  buzo.id.toString() === field.value &&
+                                    "bg-accent text-accent-foreground"
+                                )}
+                                onClick={() => {
+                                  form.setValue("buzo_id", buzo.id.toString());
+                                  setOpenBuzo(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    buzo.id.toString() === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {buzo.nombre} {buzo.apellido}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}

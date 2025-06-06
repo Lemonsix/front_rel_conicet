@@ -14,7 +14,7 @@ export interface Transecta {
   profundidadFinal?: number;
   puntoInicio?: Coordenada;
   puntoFin?: Coordenada;
-  orientacion: string;
+  sentido: string;
   embarcacionId?: number;
   buzo?: Persona;
   buzoId?: number;

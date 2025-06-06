@@ -3,6 +3,7 @@ import { Persona } from "../types/persona";
 import { Tables } from "@/lib/types/database.types";
 import { Transecta } from "../types/transecta";
 import { aseguraCoordenada, serializaCoordenada } from "../utils/coordinates";
+import { safeGetTime, safeGetDate } from "../utils/datetime";
 import { Coordenada } from "../types/coordenadas";
 import { fromTheme } from "tailwind-merge";
 
@@ -46,7 +47,7 @@ function mapTransectaWithSegments(transecta: any): Transecta {
       fecha: "",
       horaInicio: "",
       horaFin: "",
-      orientacion: "",
+      sentido: "",
     };
   }
 
@@ -146,14 +147,14 @@ function mapTransectaWithSegments(transecta: any): Transecta {
     id: transecta.id || 0,
     nombre: transecta.nombre || "",
     observaciones: transecta.observaciones || "",
-    fecha: transecta.fecha || "",
-    horaInicio: transecta.hora_inicio || "",
-    horaFin: transecta.hora_fin || "",
+    fecha: safeGetDate(transecta.fecha) || transecta.fecha,
+    horaInicio: safeGetTime(transecta.hora_inicio),
+    horaFin: safeGetTime(transecta.hora_fin),
     profundidadInicial,
     profundidadFinal,
     puntoInicio,
     puntoFin,
-    orientacion: transecta.orientacion || "",
+    sentido: transecta.sentido || "",
     embarcacionId: transecta.embarcacion_id,
     buzoId: transecta.buzo_id,
     campaniaId: transecta.campania_id || 0,
