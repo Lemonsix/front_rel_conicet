@@ -191,18 +191,37 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
 
   const handleSegmentoCreado = useCallback(async () => {
     const transectaIds = Array.from(transectasAbiertas);
+    
+    // Primero invalidar el cache
+    setSegmentosCargados((prev) => {
+      const next = { ...prev };
+      transectaIds.forEach(id => delete next[id]);
+      return next;
+    });
+    
+    // Luego forzar la recarga sin depender del cache
     await Promise.all(
       transectaIds.map(async (transectaId) => {
-        // Invalidar cache y recargar
-        setSegmentosCargados((prev) => {
-          const next = { ...prev };
-          delete next[transectaId];
-          return next;
-        });
-        await loadSegmentos(transectaId);
+        setCargandoSegmentos((prev) => ({ ...prev, [transectaId]: true }));
+        try {
+          const result = await getSegmentosByTransectaAction(transectaId);
+          if (result.error) throw new Error(result.error);
+          if (!result.data) throw new Error("No se encontraron datos");
+
+          const segmentosMapeados = mapSegmentosFunction(result.data);
+          setSegmentosCargados((prev) => ({
+            ...prev,
+            [transectaId]: segmentosMapeados as Segmento[],
+          }));
+        } catch (error) {
+          console.error("Error loading segments:", error);
+          toast.error("Error al cargar los segmentos");
+        } finally {
+          setCargandoSegmentos((prev) => ({ ...prev, [transectaId]: false }));
+        }
       })
     );
-  }, [transectasAbiertas, loadSegmentos]);
+  }, [transectasAbiertas]);
 
   const refreshTransectas = useCallback(async () => {
     setIsLoading(true);

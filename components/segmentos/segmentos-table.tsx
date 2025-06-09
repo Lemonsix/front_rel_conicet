@@ -73,30 +73,31 @@ export function SegmentosTable({
 
   return (
     <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>N</TableHead>
-            <TableHead>
-              <span className="flex items-center gap-2">
-                <ArrowDownFromLine className="w-4 h-4" />
-                Inicial
-              </span>
-            </TableHead>
-            <TableHead>
-              <span className="flex items-center gap-2">
-                <ArrowDownFromLine className="w-4 h-4" />
-                Final
-              </span>
-            </TableHead>
-            <TableHead>Distancia</TableHead>
-            <TableHead>Sustrato</TableHead>
-            <TableHead>Conteo</TableHead>
-            <TableHead>Est. Mínima</TableHead>
-            <TableHead className="w-[100px]"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+      <div className="rounded-md border h-[500px] overflow-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>N</TableHead>
+              <TableHead>
+                <span className="flex items-center gap-2">
+                  <ArrowDownFromLine className="w-4 h-4" />
+                  Inicial
+                </span>
+              </TableHead>
+              <TableHead>
+                <span className="flex items-center gap-2">
+                  <ArrowDownFromLine className="w-4 h-4" />
+                  Final
+                </span>
+              </TableHead>
+              <TableHead>Distancia</TableHead>
+              <TableHead>Sustrato</TableHead>
+              <TableHead>Conteo</TableHead>
+              <TableHead>Est. Mínima</TableHead>
+              <TableHead className="w-[100px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
           {segmentos.map((segmento) => (
             <TableRow key={segmento.id}>
               <TableCell>{segmento.numero}</TableCell>
@@ -219,8 +220,9 @@ export function SegmentosTable({
               </TableCell>
             </TableRow>
           ))}
-        </TableBody>
-      </Table>
+          </TableBody>
+        </Table>
+      </div>
 
       {segmentoAEditar && (
         <EditarSegmentoForm

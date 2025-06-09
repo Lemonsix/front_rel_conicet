@@ -127,7 +127,7 @@ export function TransectaDetails({
             )}
           </TabsList>
 
-          <TabsContent value="segmentos" className="pt-4">
+          <TabsContent value="segmentos" className="pt-4 space-y-4">
             <SegmentosTable
               segmentos={segmentos}
               onSegmentoCreado={onSegmentoCreado}

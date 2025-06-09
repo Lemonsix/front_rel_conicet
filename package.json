@@ -58,8 +58,12 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@tailwindcss/oxide",
+      "core-js-pure",
       "electron",
-      "supabase"
+      "sharp",
+      "supabase",
+      "unrs-resolver"
     ]
   }
 }
