@@ -125,7 +125,7 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
     } finally {
       setIsLoadingMarisqueos(false);
     }
-  }, [campania.id, isLoadingMarisqueos]);
+  }, [campania.id]);
 
   // Función optimizada para cargar cuadrados
   const loadCuadrados = useCallback(async () => {
@@ -142,35 +142,32 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
     } finally {
       setIsLoadingCuadrados(false);
     }
-  }, [campania.id, isLoadingCuadrados]);
+  }, [campania.id]);
 
   // Función optimizada para cargar segmentos
-  const loadSegmentos = useCallback(
-    async (transectaId: number) => {
-      if (segmentosCargados[transectaId] || cargandoSegmentos[transectaId]) {
-        return;
-      }
+  const loadSegmentos = useCallback(async (transectaId: number) => {
+    if (segmentosCargados[transectaId] || cargandoSegmentos[transectaId]) {
+      return;
+    }
 
-      setCargandoSegmentos((prev) => ({ ...prev, [transectaId]: true }));
-      try {
-        const result = await getSegmentosByTransectaAction(transectaId);
-        if (result.error) throw new Error(result.error);
-        if (!result.data) throw new Error("No se encontraron datos");
+    setCargandoSegmentos((prev) => ({ ...prev, [transectaId]: true }));
+    try {
+      const result = await getSegmentosByTransectaAction(transectaId);
+      if (result.error) throw new Error(result.error);
+      if (!result.data) throw new Error("No se encontraron datos");
 
-        const segmentosMapeados = mapSegmentosFunction(result.data);
-        setSegmentosCargados((prev) => ({
-          ...prev,
-          [transectaId]: segmentosMapeados as Segmento[],
-        }));
-      } catch (error) {
-        console.error("Error loading segments:", error);
-        toast.error("Error al cargar los segmentos");
-      } finally {
-        setCargandoSegmentos((prev) => ({ ...prev, [transectaId]: false }));
-      }
-    },
-    [segmentosCargados, cargandoSegmentos]
-  );
+      const segmentosMapeados = mapSegmentosFunction(result.data);
+      setSegmentosCargados((prev) => ({
+        ...prev,
+        [transectaId]: segmentosMapeados as Segmento[],
+      }));
+    } catch (error) {
+      console.error("Error loading segments:", error);
+      toast.error("Error al cargar los segmentos");
+    } finally {
+      setCargandoSegmentos((prev) => ({ ...prev, [transectaId]: false }));
+    }
+  }, []);
 
   // Handlers optimizados
   const handleTransectaOpen = useCallback(
@@ -258,13 +255,21 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
 
   // Efectos para carga lazy de pestañas
   useEffect(() => {
-    if (activeTab === "marisqueos" && marisqueos.length === 0) {
+    if (
+      activeTab === "marisqueos" &&
+      marisqueos.length === 0 &&
+      !isLoadingMarisqueos
+    ) {
       loadMarisqueos();
     }
   }, [activeTab, marisqueos.length, loadMarisqueos]);
 
   useEffect(() => {
-    if (activeTab === "cuadrados" && cuadrados.length === 0) {
+    if (
+      activeTab === "cuadrados" &&
+      cuadrados.length === 0 &&
+      !isLoadingCuadrados
+    ) {
       loadCuadrados();
     }
   }, [activeTab, cuadrados.length, loadCuadrados]);

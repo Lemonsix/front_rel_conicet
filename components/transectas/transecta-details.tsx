@@ -116,64 +116,10 @@ export function TransectaDetails({
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       ) : (
-        <Tabs defaultValue="segmentos">
-          <TabsList>
-            <TabsTrigger value="segmentos">Segmentos</TabsTrigger>
-            {hasMarisqueo && (
-              <TabsTrigger value="marisqueo">Marisqueo</TabsTrigger>
-            )}
-            {hasCuadrados && (
-              <TabsTrigger value="cuadrados">Cuadrados</TabsTrigger>
-            )}
-          </TabsList>
-
-          <TabsContent value="segmentos" className="pt-4 space-y-4">
-            <SegmentosTable
-              segmentos={segmentos}
-              onSegmentoCreado={onSegmentoCreado}
-            />
-          </TabsContent>
-
-          {hasMarisqueo && (
-            <TabsContent value="marisqueo" className="pt-4">
-              <div className="border rounded p-4">
-                <h3 className="text-lg font-medium mb-2">
-                  Información de Marisqueo
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Aquí se mostrarán los datos de marisqueo de los segmentos
-                  seleccionados.
-                </p>
-
-                {/* Placeholder for marisqueo data - would be expanded with actual marisqueo component */}
-                <div className="text-sm text-muted-foreground">
-                  La funcionalidad de ver y agregar marisqueo se implementará
-                  próximamente.
-                </div>
-              </div>
-            </TabsContent>
-          )}
-
-          {hasCuadrados && (
-            <TabsContent value="cuadrados" className="pt-4">
-              <div className="border rounded p-4">
-                <h3 className="text-lg font-medium mb-2">
-                  Información de Cuadrados
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Aquí se mostrarán los datos de cuadrados de los segmentos
-                  seleccionados.
-                </p>
-
-                {/* Placeholder for cuadrados data - would be expanded with actual cuadrados component */}
-                <div className="text-sm text-muted-foreground">
-                  La funcionalidad de ver y agregar cuadrados se implementará
-                  próximamente.
-                </div>
-              </div>
-            </TabsContent>
-          )}
-        </Tabs>
+        <SegmentosTable
+          segmentos={segmentos}
+          onSegmentoCreado={onSegmentoCreado}
+        />
       )}
     </div>
   );
