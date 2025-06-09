@@ -191,14 +191,14 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
 
   const handleSegmentoCreado = useCallback(async () => {
     const transectaIds = Array.from(transectasAbiertas);
-    
+
     // Primero invalidar el cache
     setSegmentosCargados((prev) => {
       const next = { ...prev };
-      transectaIds.forEach(id => delete next[id]);
+      transectaIds.forEach((id) => delete next[id]);
       return next;
     });
-    
+
     // Luego forzar la recarga sin depender del cache
     await Promise.all(
       transectaIds.map(async (transectaId) => {
@@ -278,10 +278,7 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
   }, [selectedTransectaId, segmentosCargados]);
 
   return (
-    <div
-      id="campania-view"
-      className="w-full min-h-0 h-full overflow-hidden p-6 flex flex-col"
-    >
+    <div id="campania-view" className="w-full min-h-0 h-full p-6 flex flex-col">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">{campania.nombre}</h1>
@@ -313,7 +310,7 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
           value="transectas"
           className="flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col"
         >
-          <div className="max-h-full flex-1 overflow-clip grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0">
+          <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0">
             <div className="overflow-hidden h-full min-h-0">
               <TransectasList
                 transectas={transectas}
@@ -325,7 +322,7 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
                 onTransectaSelect={setSelectedTransectaId}
               />
             </div>
-            <div className="h-auto">
+            <div className="h-full overflow-hidden">
               <TransectaMap segmentos={segmentosParaMapa} />
             </div>
           </div>

@@ -73,7 +73,7 @@ export function SegmentosTable({
 
   return (
     <>
-      <div className="rounded-md border h-[500px] overflow-auto">
+      <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>

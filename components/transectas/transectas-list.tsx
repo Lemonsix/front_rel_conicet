@@ -77,21 +77,23 @@ export function TransectasList({
     if (!selectedTransecta) return null;
 
     return (
-      <div className="h-full min-h-0 max-h-full overflow-y-scroll overflow-x-hidden">
-        <TransectaDetails
-          transecta={selectedTransecta}
-          segmentos={segmentosCargados[selectedTransectaId] || []}
-          onBack={handleBack}
-          onSegmentoCreado={onSegmentoCreado}
-          isLoading={cargandoSegmentos[selectedTransectaId] || false}
-        />
+      <div className="h-full min-h-0 overflow-y-scroll overflow-x-hidden">
+        <div className="pb-8">
+          <TransectaDetails
+            transecta={selectedTransecta}
+            segmentos={segmentosCargados[selectedTransectaId] || []}
+            onBack={handleBack}
+            onSegmentoCreado={onSegmentoCreado}
+            isLoading={cargandoSegmentos[selectedTransectaId] || false}
+          />
+        </div>
       </div>
     );
   }
 
   // Otherwise show the list of transecta cards
   return (
-    <div className="h-full min-h-0 max-h-full overflow-y-scroll overflow-x-hidden pr-1">
+    <div className="h-full min-h-0 overflow-y-scroll overflow-x-hidden pr-1">
       <div className="flex flex-col gap-4 pb-4 w-full">
         {transectas.map((transecta) => (
           <TransectaCard
