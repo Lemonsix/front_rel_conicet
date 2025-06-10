@@ -107,6 +107,7 @@ export async function getCampaniaByIdAction(campaniaId: number): Promise<{
       embarcacion_id,
       buzo_id,
       campania_id,
+      largo_manguera,
       embarcacion:embarcaciones!transectas_fk_embarcaciones(
         id,
         nombre,
@@ -126,10 +127,28 @@ export async function getCampaniaByIdAction(campaniaId: number): Promise<{
     return { error: transectasError.message };
   }
 
-  // Tercera consulta: obtener primer y último segmento de cada transecta usando window functions
+  // Tercera consulta: obtener conteo de segmentos por transecta
   const transectaIds = transectasData.map((t) => t.id);
+  let segmentCountsByTransecta: Record<number, number> = {};
 
   if (transectaIds.length > 0) {
+    // Obtener conteo de segmentos por transecta
+    const { data: segmentCounts, error: countError } = await supabase
+      .from("segmentos")
+      .select("transecta_id")
+      .in("transecta_id", transectaIds);
+
+    if (countError) {
+      console.error("Error al obtener conteo de segmentos:", countError);
+    } else if (segmentCounts) {
+      // Contar segmentos por transecta
+      segmentCounts.forEach((seg) => {
+        segmentCountsByTransecta[seg.transecta_id] =
+          (segmentCountsByTransecta[seg.transecta_id] || 0) + 1;
+      });
+    }
+
+    // Cuarta consulta: obtener primer y último segmento de cada transecta usando window functions
     const { data: segmentosData, error: segmentosError } = await supabase.rpc(
       "get_first_last_segments_by_transectas",
       {
@@ -177,6 +196,7 @@ export async function getCampaniaByIdAction(campaniaId: number): Promise<{
           ...t,
           firstSegment: firstSeg?.[0] || null,
           lastSegment: lastSeg?.[0] || null,
+          cantidadSegmentos: segmentCountsByTransecta[t.id] || 0,
         });
       }
 
@@ -209,6 +229,7 @@ export async function getCampaniaByIdAction(campaniaId: number): Promise<{
       ...t,
       firstSegment: segmentosPorTransecta[t.id]?.first || null,
       lastSegment: segmentosPorTransecta[t.id]?.last || null,
+      cantidadSegmentos: segmentCountsByTransecta[t.id] || 0,
     }));
 
     // Utilizar el mapper especializado para convertir los datos

@@ -136,13 +136,6 @@ function mapTransectaWithSegments(transecta: any): Transecta {
   const profundidadInicial = transecta.firstSegment?.profundidad_inicial;
   const profundidadFinal = transecta.lastSegment?.profundidad_final;
 
-  // Para depuración
-  if (!puntoInicio && !puntoFin) {
-    console.log(
-      `AVISO: La transecta ${transecta.id} no tiene coordenadas de inicio ni fin disponibles.`
-    );
-  }
-
   const result = {
     id: transecta.id || 0,
     nombre: transecta.nombre || "",
@@ -152,6 +145,7 @@ function mapTransectaWithSegments(transecta: any): Transecta {
     horaFin: safeGetTime(transecta.hora_fin),
     profundidadInicial,
     profundidadFinal,
+    largoManguera: transecta.largo_manguera || undefined,
     puntoInicio,
     puntoFin,
     sentido: transecta.sentido || "",
@@ -160,6 +154,12 @@ function mapTransectaWithSegments(transecta: any): Transecta {
     campaniaId: transecta.campania_id || 0,
     embarcacion,
     buzo,
+    // Si hay cantidadSegmentos, crear un array placeholder para indicar la cantidad
+    // Esto permite que getSegmentCount funcione correctamente
+    segmentos:
+      transecta.cantidadSegmentos > 0
+        ? new Array(transecta.cantidadSegmentos).fill(null)
+        : [],
   };
 
   return result;

@@ -60,6 +60,19 @@ export function TransectasList({
     [segmentosCargados]
   );
 
+  // Helper function to get segment count
+  const getSegmentCount = useCallback(
+    (transecta: Transecta): number => {
+      // Primero intentar usar los segmentos que vienen con la transecta
+      if (transecta.segmentos && transecta.segmentos.length > 0) {
+        return transecta.segmentos.length;
+      }
+      // Si no hay segmentos en la transecta, usar los cargados dinámicamente
+      return (segmentosCargados[transecta.id] || []).length;
+    },
+    [segmentosCargados]
+  );
+
   // Go back to grid view
   const handleBack = useCallback(() => {
     if (selectedTransectaId) {
@@ -101,7 +114,7 @@ export function TransectasList({
             transecta={transecta}
             onClick={() => handleCardClick(transecta.id)}
             onHover={onTransectaSelect}
-            segmentCount={(segmentosCargados[transecta.id] || []).length}
+            segmentCount={getSegmentCount(transecta)}
             hasMarisqueo={hasMarisqueo(transecta.id)}
             hasCuadrados={hasCuadrados(transecta.id)}
           />

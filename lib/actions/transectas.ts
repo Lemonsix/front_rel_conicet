@@ -36,6 +36,7 @@ export async function getTransectasByCampaniaAction(
         hora_inicio,
         hora_fin,
         profundidad_inicial,
+        largo_manguera,
         sentido,
         embarcacion_id,
         buzo_id,
@@ -44,6 +45,7 @@ export async function getTransectasByCampaniaAction(
       )
       .eq("campania_id", campaniaId);
 
+    console.log("transectas", transectas);
     if (transectasError) {
       console.error("Error al obtener transectas:", transectasError);
       return { error: transectasError.message };

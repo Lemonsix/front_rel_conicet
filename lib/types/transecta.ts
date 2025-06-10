@@ -12,6 +12,7 @@ export interface Transecta {
   horaFin: string;
   profundidadInicial?: number;
   profundidadFinal?: number;
+  largoManguera?: number;
   puntoInicio?: Coordenada;
   puntoFin?: Coordenada;
   sentido: string;

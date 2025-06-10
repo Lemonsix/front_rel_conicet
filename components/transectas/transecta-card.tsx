@@ -11,6 +11,7 @@ import {
   MapPinIcon,
   ArrowDownFromLineIcon,
   Tally5Icon,
+  Axis3D,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -101,54 +102,65 @@ export function TransectaCard({
             <Tally5Icon className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
             <span>{segmentCount} segmentos</span>
           </div>
+          {transecta.largoManguera && (
+            <div className="flex items-center text-sm text-muted-foreground">
+              <Axis3D className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+              <span>{transecta.largoManguera}m</span>
+            </div>
+          )}
         </div>
 
         {/* Section 3: Coordinates */}
-        <div className="flex-1 min-w-0 max-w-full space-y-1 text-xs text-muted-foreground">
-          <div className="flex items-start">
-            <MapPinIcon className="w-3.5 h-3.5 mr-1.5 mt-0.5 flex-shrink-0" />
-            <div className="min-w-0 max-w-full">
-              <span className="font-medium">Inicio: </span>
-              <div className="flex flex-col">
-                <span className="truncate">
-                  {puntoInicioStr?.latitud.grados}°
-                  {puntoInicioStr?.latitud.minutos}'
-                  {puntoInicioStr?.latitud.segundos}"
-                  {puntoInicioStr?.latitud.direccion} /
-                  {puntoInicioStr?.longitud.grados}°
-                  {puntoInicioStr?.longitud.minutos}'
-                  {puntoInicioStr?.longitud.segundos}"
-                  {puntoInicioStr?.longitud.direccion}
-                </span>
-                <span className="flex items-center">
-                  <ArrowDownFromLineIcon className="w-3 h-3 mr-1 inline flex-shrink-0" />
-                  Prof.: {transecta.profundidadInicial || "N/D"}m
-                </span>
+        {transecta.puntoInicio && (
+          <div className="flex-1 min-w-0 max-w-full space-y-1 text-xs text-muted-foreground">
+            <div className="flex items-start">
+              <MapPinIcon className="w-3.5 h-3.5 mr-1.5 mt-0.5 flex-shrink-0" />
+              <div className="min-w-0 max-w-full">
+                <span className="font-medium">Inicio: </span>
+                <div className="flex flex-col">
+                  <span className="truncate">
+                    {puntoInicioStr?.latitud.grados}°
+                    {puntoInicioStr?.latitud.minutos}'
+                    {puntoInicioStr?.latitud.segundos}"
+                    {puntoInicioStr?.latitud.direccion} /
+                    {puntoInicioStr?.longitud.grados}°
+                    {puntoInicioStr?.longitud.minutos}'
+                    {puntoInicioStr?.longitud.segundos}"
+                    {puntoInicioStr?.longitud.direccion}
+                  </span>
+                  <span className="flex items-center">
+                    <ArrowDownFromLineIcon className="w-3 h-3 mr-1 inline flex-shrink-0" />
+                    Prof.: {transecta.profundidadInicial || "N/D"}m
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-
-          <div className="flex items-start">
-            <MapPinIcon className="w-3.5 h-3.5 mr-1.5 mt-0.5 flex-shrink-0" />
-            <div className="min-w-0 max-w-full">
-              <span className="font-medium">Fin: </span>
-              <div className="flex flex-col">
-                <span className="truncate">
-                  {puntoFinStr?.latitud.grados}°{puntoFinStr?.latitud.minutos}'
-                  {puntoFinStr?.latitud.segundos}"
-                  {puntoFinStr?.latitud.direccion} /
-                  {puntoFinStr?.longitud.grados}°{puntoFinStr?.longitud.minutos}
-                  '{puntoFinStr?.longitud.segundos}"
-                  {puntoFinStr?.longitud.direccion}
-                </span>
-                <span className="flex items-center">
-                  <ArrowDownFromLineIcon className="w-3 h-3 mr-1 inline flex-shrink-0" />
-                  Prof.: {transecta.profundidadFinal || "N/D"}m
-                </span>
+            {transecta.puntoFin && (
+              <div className="flex items-start">
+                <MapPinIcon className="w-3.5 h-3.5 mr-1.5 mt-0.5 flex-shrink-0" />
+                <div className="min-w-0 max-w-full">
+                  <span className="font-medium">Fin: </span>
+                  <div className="flex flex-col">
+                    <span className="truncate">
+                      {puntoFinStr?.latitud.grados}°
+                      {puntoFinStr?.latitud.minutos}'
+                      {puntoFinStr?.latitud.segundos}"
+                      {puntoFinStr?.latitud.direccion} /
+                      {puntoFinStr?.longitud.grados}°
+                      {puntoFinStr?.longitud.minutos}'
+                      {puntoFinStr?.longitud.segundos}"
+                      {puntoFinStr?.longitud.direccion}
+                    </span>
+                    <span className="flex items-center">
+                      <ArrowDownFromLineIcon className="w-3 h-3 mr-1 inline flex-shrink-0" />
+                      Prof.: {transecta.profundidadFinal || "N/D"}m
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

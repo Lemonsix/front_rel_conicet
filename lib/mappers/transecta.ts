@@ -17,6 +17,7 @@ export type TransectaWithRelations = {
   hora_fin: string | null;
   profundidad_inicial: number | null;
   profundidad_final: number | null;
+  largo_manguera: number | null;
   sentido: string | null;
   embarcacion_id: number | null;
   buzo_id: number | null;
@@ -146,6 +147,7 @@ export function mapTransecta(transecta: TransectaWithRelations): Transecta {
     horaFin: safeGetTime(transecta.hora_fin),
     profundidadInicial,
     profundidadFinal,
+    largoManguera: transecta.largo_manguera || undefined,
     puntoInicio,
     puntoFin,
     sentido: transecta.sentido || "",
