@@ -14,6 +14,7 @@ import { Segmento } from "@/lib/types/segmento";
 import { Transecta } from "@/lib/types/transecta";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { TransectaModal } from "../transectas/transecta-modal";
 import { TransectaMap } from "../map/transecta-map";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -50,6 +51,8 @@ const ordenarTransectas = (transectas: Transecta[]): Transecta[] => {
 };
 
 export function CampaniaView({ campania }: CampaniaViewProps) {
+  const router = useRouter();
+
   // Estados principales - inicializados de forma estable
   const [activeTab, setActiveTab] = useState<TabValue>("transectas");
   const [transectasAbiertas, setTransectasAbiertas] = useState<Set<number>>(
@@ -223,6 +226,7 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
   const refreshTransectas = useCallback(async () => {
     setIsLoading(true);
     try {
+      // Primero actualizamos el estado local para respuesta inmediata
       const { data: transectasData, error: transectasError } =
         await getTransectasByCampaniaAction(campania.id);
 
@@ -237,16 +241,22 @@ export function CampaniaView({ campania }: CampaniaViewProps) {
           const transectaIds = Array.from(transectasAbiertas);
           await Promise.all(transectaIds.map(loadSegmentos));
         }
-
-        toast.success("Transectas actualizadas correctamente");
       }
+
+      // Luego forzar actualización completa para obtener datos frescos del servidor
+      // con todas las relaciones correctas
+      setTimeout(() => {
+        router.refresh();
+      }, 100);
+
+      toast.success("Transectas actualizadas correctamente");
     } catch (error) {
       console.error("Error refreshing transectas:", error);
       toast.error("Error al actualizar las transectas");
     } finally {
       setIsLoading(false);
     }
-  }, [campania.id, transectasAbiertas, loadSegmentos]);
+  }, [campania.id, transectasAbiertas, loadSegmentos, router]);
 
   // Efecto para cargar datos iniciales
   useEffect(() => {

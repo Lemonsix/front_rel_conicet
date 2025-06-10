@@ -70,16 +70,13 @@ export function TransectaDetails({
                 {transecta.sentido || "No especificada"}
               </p>
             </div>
-            <div>
-              <p className="text-sm font-medium">Profundidad inicial:</p>
-              <p className="text-sm">{transecta.profundidadInicial}m</p>
-            </div>
-            {transecta.profundidadFinal !== undefined && (
+            {transecta.profundidadInicial !== undefined && (
               <div>
-                <p className="text-sm font-medium">Profundidad final:</p>
-                <p className="text-sm">{transecta.profundidadFinal}m</p>
+                <p className="text-sm font-medium">Profundidad inicial:</p>
+                <p className="text-sm">{transecta.profundidadInicial}m</p>
               </div>
             )}
+
             {transecta.embarcacion && (
               <div>
                 <p className="text-sm font-medium">Embarcación:</p>
@@ -92,6 +89,12 @@ export function TransectaDetails({
                 <p className="text-sm">
                   {transecta.buzo.nombre} {transecta.buzo.apellido}
                 </p>
+              </div>
+            )}
+            {transecta.largoManguera && (
+              <div>
+                <p className="text-sm font-medium">Largo de manguera:</p>
+                <p className="text-sm">{transecta.largoManguera}m</p>
               </div>
             )}
             {transecta.observaciones && (

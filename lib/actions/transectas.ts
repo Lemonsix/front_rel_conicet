@@ -24,7 +24,7 @@ export async function getTransectasByCampaniaAction(
       console.log(`Total de segmentos en la base de datos: ${segmentosCount}`);
     }
 
-    // Primero recuperamos las transectas de esta campaña
+    // Primero recuperamos las transectas de esta campaña con sus relaciones
     const { data: transectas, error: transectasError } = await supabase
       .from("transectas")
       .select(
@@ -40,7 +40,18 @@ export async function getTransectasByCampaniaAction(
         sentido,
         embarcacion_id,
         buzo_id,
-        campania_id
+        campania_id,
+        embarcacion:embarcaciones!transectas_fk_embarcaciones(
+          id,
+          nombre,
+          matricula
+        ),
+        buzo:personas!transectas_fk_buzo_personas(
+          id,
+          nombre,
+          apellido,
+          rol
+        )
       `
       )
       .eq("campania_id", campaniaId);

@@ -41,6 +41,7 @@ const formSchema = z.object({
   fecha: z.string().min(1, "La fecha es requerida"),
   hora_inicio: z.string().min(1, "La hora de inicio es requerida"),
   hora_fin: z.string().min(1, "La hora de fin es requerida"),
+  largo_manguera: z.string().optional(),
   sentido: z.string().min(1, "El sentido es requerido"),
   embarcacion_id: z.string().optional(),
   buzo_id: z.string().optional(),
@@ -97,6 +98,7 @@ export function TransectaForm({
       fecha: "",
       hora_inicio: "",
       hora_fin: "",
+      largo_manguera: "",
       sentido: "",
       embarcacion_id: "",
       buzo_id: "",
@@ -119,12 +121,15 @@ export function TransectaForm({
         ...values,
         hora_inicio,
         hora_fin,
+        largo_manguera: values.largo_manguera
+          ? parseFloat(values.largo_manguera)
+          : undefined,
         embarcacion_id: values.embarcacion_id
           ? parseInt(values.embarcacion_id)
           : undefined,
         buzo_id: values.buzo_id ? parseInt(values.buzo_id) : undefined,
         campania_id: campaniaId,
-      });
+      } as any);
 
       if (error) {
         console.error("Error al crear transecta:", error);
@@ -134,7 +139,7 @@ export function TransectaForm({
       console.log("Transecta creada correctamente:", data);
       toast.success("La transecta se ha creado correctamente");
       form.reset();
-      
+
       // Make sure to call onSuccess
       if (onSuccess) {
         try {
@@ -275,6 +280,26 @@ export function TransectaForm({
                 <FormLabel>Hora de fin</FormLabel>
                 <FormControl>
                   <Input type="time" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="largo_manguera"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Largo de manguera (m)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    placeholder="Ej: 25.5"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
