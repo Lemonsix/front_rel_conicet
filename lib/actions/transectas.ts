@@ -49,14 +49,13 @@ export async function getTransectasByCampaniaAction(
         buzo:personas!transectas_fk_buzo_personas(
           id,
           nombre,
-          apellido,
+          apellido,  
           rol
         )
       `
       )
       .eq("campania_id", campaniaId);
 
-    console.log("transectas", transectas);
     if (transectasError) {
       console.error("Error al obtener transectas:", transectasError);
       return { error: transectasError.message };
@@ -218,8 +217,6 @@ export async function getTransectasByCampaniaAction(
 
     // Verificar si hay segmentos y mostrar información
     if (!segmentosData || segmentosData.length === 0) {
-      console.log("No se encontraron segmentos para ninguna de las transectas");
-
       // Para depuración, consultamos directamente por una transecta específica
       if (transectasIds.length > 0) {
         const pruebaId = transectasIds[0];
@@ -352,8 +349,6 @@ export async function getTransectasByCampaniaAction(
       hora_fin: t.hora_fin,
     }));
 
-    console.log("Resumen de transectas procesadas:", resumen);
-
     // Mapeamos las transectas al formato final
     const transectasMapeadas = mapTransectas(transectasConRelaciones);
 
@@ -368,18 +363,81 @@ export async function getTransectasByCampaniaAction(
       puntoFin: !!t.puntoFin,
     }));
 
-    // Verificar ordenamiento final
-    console.log(
-      "Nombres ordenados:",
-      transectasMapeadas.map((t) => t.nombre).join(", ")
-    );
-    console.log("Transectas mapeadas final:", resumenFinal);
-
-    revalidatePath(`/campanias/${campaniaId}`);
     return { data: transectasMapeadas };
   } catch (error) {
     console.error("Error inesperado en getTransectasByCampaniaAction:", error);
     return { error: String(error) };
+  }
+}
+
+export async function getTransectaByIdAction(transectaId: number): Promise<{
+  data?: any;
+  error?: string;
+}> {
+  const supabase = await createClient();
+  try {
+    const { data: transecta, error: transectaError } = await supabase
+      .from("transectas")
+      .select(
+        `
+        id,
+        nombre,
+        observaciones,
+        fecha,
+        hora_inicio,
+        hora_fin,
+        profundidad_inicial,
+        largo_manguera,
+        sentido,
+        embarcacion_id,
+        buzo_id,
+        campania_id,
+        embarcacion:embarcaciones!transectas_fk_embarcaciones(
+          id,
+          nombre,
+          matricula
+        ),
+        buzo:personas!transectas_fk_buzo_personas(
+          id,
+          nombre,
+          apellido,
+          rol
+        )
+      `
+      )
+      .eq("id", transectaId)
+      .single();
+
+    if (transectaError) {
+      console.error("Error al obtener transecta:", transectaError);
+      return { error: transectaError.message };
+    }
+
+    if (!transecta) {
+      return { error: "Transecta no encontrada" };
+    }
+
+    // Transformar la transecta para que sea compatible con el mapper
+    const transectaTransformada = {
+      ...transecta,
+      embarcacion: Array.isArray(transecta.embarcacion)
+        ? transecta.embarcacion[0] || null
+        : transecta.embarcacion,
+      buzo: Array.isArray(transecta.buzo)
+        ? transecta.buzo[0] || null
+        : transecta.buzo,
+      // Agregar propiedades que esperan el mapper pero no están en la tabla
+      profundidad_final: null,
+      coordenadas_inicio: null,
+      coordenadas_fin: null,
+    };
+
+    // Mapear la transecta individual
+    const transectasMapeadas = mapTransectas([transectaTransformada]);
+    return { data: transectasMapeadas[0] };
+  } catch (error) {
+    console.error("Error en getTransectaByIdAction:", error);
+    return { error: "Error interno del servidor" };
   }
 }
 
@@ -403,19 +461,16 @@ export async function createTransectaAction(
       return { error: error.message };
     }
 
-    console.log(`Transecta creada correctamente con ID: ${data.id}`);
-
-    // Revalidate both the specific campania page and the general campanias page
+    // Revalidate paths more comprehensively
     const campaniaPath = `/campanias/${formData.campania_id}`;
-    console.log(`Revalidando ruta específica: ${campaniaPath}`);
     revalidatePath(campaniaPath);
-
-    console.log("Revalidando ruta general: /campanias");
     revalidatePath(`/campanias`);
-
-    // Also revalidate the root to ensure any dashboard displays are updated
-    console.log("Revalidando layout raíz");
     revalidatePath("/", "layout");
+
+    // Also revalidate the specific transecta path if it exists
+    if (data?.id) {
+      revalidatePath(`${campaniaPath}/transectas/${data.id}`);
+    }
 
     return { data };
   } catch (error) {

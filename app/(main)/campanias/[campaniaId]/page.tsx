@@ -1,7 +1,5 @@
 "use server";
-import { CampaniaView } from "@/components/campanias/campania-view";
-import { getCampaniaByIdAction } from "@/lib/actions/campanias";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 
 export default async function CampaniaPage({
   params,
@@ -9,16 +7,7 @@ export default async function CampaniaPage({
   params: Promise<{ campaniaId: number }>;
 }) {
   const { campaniaId } = await params;
-  const { data, error } = await getCampaniaByIdAction(campaniaId);
 
-  if (error || !data) {
-    console.error("Error fetching campaña:", error);
-    notFound();
-  }
-
-  return (
-    <div className="h-full">
-      <CampaniaView campania={data} />
-    </div>
-  );
+  // Redirigir a transectas por defecto
+  redirect(`/campanias/${campaniaId}/transectas`);
 }

@@ -113,6 +113,8 @@ export async function getUltimoSegmentoAction(
     ...data,
     tiene_marisqueo: null,
     tiene_cuadrados: null,
+    tiene_marisqueos_bool: null,
+    tiene_cuadrados_bool: null,
   };
 
   // Mapear los datos usando el mapper
