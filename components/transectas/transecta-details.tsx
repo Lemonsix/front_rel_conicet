@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Segmento } from "@/lib/types/segmento";
 import { Transecta } from "@/lib/types/transecta";
 import { safeGetTime, safeGetDate } from "@/lib/utils/datetime";
-import { ArrowLeft } from "lucide-react";
+
 import { NuevoSegmentoForm } from "../segmentos/nuevo-segmento-form";
 import { SegmentosTable } from "../segmentos/segmentos-table";
 
@@ -43,18 +43,6 @@ export function TransectaDetails({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          onClick={onBack}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Volver a lista
-        </Button>
-        <h2 className="text-xl font-bold">{transecta.nombre}</h2>
-      </div>
-
       <Card>
         <CardHeader>
           <CardTitle>Información de la transecta</CardTitle>

@@ -112,7 +112,6 @@ export function TransectasList({
           <TransectaCard
             key={transecta.id}
             transecta={transecta}
-            onClick={() => handleCardClick(transecta.id)}
             onHover={onTransectaSelect}
             segmentCount={getSegmentCount(transecta)}
             hasMarisqueo={hasMarisqueo(transecta.id)}

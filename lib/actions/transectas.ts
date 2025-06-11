@@ -41,15 +41,15 @@ export async function getTransectasByCampaniaAction(
         embarcacion_id,
         buzo_id,
         campania_id,
-        embarcacion:embarcaciones!transectas_fk_embarcaciones(
+        embarcacion:embarcaciones(
           id,
           nombre,
           matricula
         ),
-        buzo:personas!transectas_fk_buzo_personas(
+        buzo:personas(
           id,
           nombre,
-          apellido,
+          apellido,  
           rol
         )
       `
@@ -380,6 +380,77 @@ export async function getTransectasByCampaniaAction(
   } catch (error) {
     console.error("Error inesperado en getTransectasByCampaniaAction:", error);
     return { error: String(error) };
+  }
+}
+
+export async function getTransectaByIdAction(transectaId: number): Promise<{
+  data?: any;
+  error?: string;
+}> {
+  const supabase = await createClient();
+  try {
+    const { data: transecta, error: transectaError } = await supabase
+      .from("transectas")
+      .select(
+        `
+        id,
+        nombre,
+        observaciones,
+        fecha,
+        hora_inicio,
+        hora_fin,
+        profundidad_inicial,
+        largo_manguera,
+        sentido,
+        embarcacion_id,
+        buzo_id,
+        campania_id,
+        embarcacion:embarcaciones!transectas_fk_embarcaciones(
+          id,
+          nombre,
+          matricula
+        ),
+        buzo:personas!transectas_fk_buzo_personas(
+          id,
+          nombre,
+          apellido,
+          rol
+        )
+      `
+      )
+      .eq("id", transectaId)
+      .single();
+
+    if (transectaError) {
+      console.error("Error al obtener transecta:", transectaError);
+      return { error: transectaError.message };
+    }
+
+    if (!transecta) {
+      return { error: "Transecta no encontrada" };
+    }
+
+    // Transformar la transecta para que sea compatible con el mapper
+    const transectaTransformada = {
+      ...transecta,
+      embarcacion: Array.isArray(transecta.embarcacion)
+        ? transecta.embarcacion[0] || null
+        : transecta.embarcacion,
+      buzo: Array.isArray(transecta.buzo)
+        ? transecta.buzo[0] || null
+        : transecta.buzo,
+      // Agregar propiedades que esperan el mapper pero no están en la tabla
+      profundidad_final: null,
+      coordenadas_inicio: null,
+      coordenadas_fin: null,
+    };
+
+    // Mapear la transecta individual
+    const transectasMapeadas = mapTransectas([transectaTransformada]);
+    return { data: transectasMapeadas[0] };
+  } catch (error) {
+    console.error("Error en getTransectaByIdAction:", error);
+    return { error: "Error interno del servidor" };
   }
 }
 
