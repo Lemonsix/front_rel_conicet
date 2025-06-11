@@ -852,6 +852,13 @@ export function EditarSegmentoForm({
                         type="number"
                         placeholder="Ingrese el conteo"
                         {...field}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // Permitir valor vacío o números válidos (incluyendo 0)
+                          if (value === '' || value === '0' || !isNaN(Number(value))) {
+                            field.onChange(value === '' ? 0 : Number(value));
+                          }
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
