@@ -8,9 +8,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Segmento } from "@/lib/types/segmento";
-import { ArrowDownFromLine, Pencil } from "lucide-react";
+import { ArrowDownFromLine, Pencil, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { EditarSegmentoForm } from "./editar-segmento-form";
+import { EliminarSegmentoDialog } from "./eliminar-segmento-dialog";
 import { calcularDistanciaHaversine } from "@/lib/utils/coordinates";
 
 interface SegmentosTableProps {
@@ -23,6 +24,7 @@ export function SegmentosTable({
   onSegmentoCreado,
 }: SegmentosTableProps) {
   const [segmentoAEditar, setSegmentoAEditar] = useState<Segmento | null>(null);
+  const [segmentoAEliminar, setSegmentoAEliminar] = useState<Segmento | null>(null);
   const [distancias, setDistancias] = useState<Record<number, number>>({});
 
   useEffect(() => {
@@ -94,7 +96,7 @@ export function SegmentosTable({
               <TableHead>Sustrato</TableHead>
               <TableHead>Conteo</TableHead>
               <TableHead>Est. Mínima</TableHead>
-              <TableHead className="w-[100px]"></TableHead>
+              <TableHead className="w-[120px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -210,13 +212,22 @@ export function SegmentosTable({
               <TableCell>{segmento.conteo}</TableCell>
               <TableCell>{segmento.estMinima}</TableCell>
               <TableCell>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setSegmentoAEditar(segmento)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSegmentoAEditar(segmento)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSegmentoAEliminar(segmento)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
@@ -232,6 +243,13 @@ export function SegmentosTable({
           onSuccess={onSegmentoCreado}
         />
       )}
+
+      <EliminarSegmentoDialog
+        segmento={segmentoAEliminar}
+        isOpen={!!segmentoAEliminar}
+        onClose={() => setSegmentoAEliminar(null)}
+        onSuccess={onSegmentoCreado}
+      />
     </>
   );
 }

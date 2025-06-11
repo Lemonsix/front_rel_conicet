@@ -242,3 +242,21 @@ export async function getSegmentosByTransectaAction(
     return { data: [], error: String(error) };
   }
 }
+
+export async function deleteSegmentoAction(
+  segmentoId: number
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("segmentos")
+    .delete()
+    .eq("id", segmentoId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/campanias");
+  return {};
+}
