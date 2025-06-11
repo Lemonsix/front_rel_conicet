@@ -3,21 +3,19 @@
 import { TransectasList } from "@/components/transectas/transectas-list";
 import { getSegmentosByTransectaAction } from "@/lib/actions/segmentos";
 import { mapSegmentos as mapSegmentosFunction } from "@/lib/mappers/segmentos";
-import { mapTransectas } from "@/lib/mappers/transecta";
-import { getTransectasByCampaniaAction } from "@/lib/actions/transectas";
-import { Campania } from "@/lib/types/campania";
+import { getCampaniaByIdAction } from "@/lib/actions/campanias";
 import { Embarcacion } from "@/lib/types/embarcacion";
 import { Persona } from "@/lib/types/persona";
 import { Segmento } from "@/lib/types/segmento";
 import { Transecta } from "@/lib/types/transecta";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { TransectaModal } from "../transectas/transecta-modal";
 import { TransectaMap } from "../map/transecta-map";
+import { useCampania } from "./campania-provider";
 
 interface TransectasViewProps {
-  campania: Campania;
   embarcaciones: Embarcacion[];
   buzos: Persona[];
 }
@@ -34,21 +32,18 @@ const ordenarTransectas = (transectas: Transecta[]): Transecta[] => {
   });
 };
 
-export function TransectasView({
-  campania,
-  embarcaciones,
-  buzos,
-}: TransectasViewProps) {
+export function TransectasView({ embarcaciones, buzos }: TransectasViewProps) {
   const router = useRouter();
+  const { campania, transectas: initialTransectas } = useCampania();
 
   // Estados principales
   const [transectasAbiertas, setTransectasAbiertas] = useState<Set<number>>(
     () => new Set()
   );
 
-  // Estados de datos
+  // Estados de datos - usar transectas del context
   const [transectas, setTransectas] = useState<Transecta[]>(() => {
-    return campania.transectas ? ordenarTransectas(campania.transectas) : [];
+    return initialTransectas;
   });
 
   // Estados de carga
@@ -144,14 +139,14 @@ export function TransectasView({
   const refreshTransectas = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data: transectasData, error: transectasError } =
-        await getTransectasByCampaniaAction(campania.id);
+      const { data: campaniaData, error: campaniaError } =
+        await getCampaniaByIdAction(campania.id);
 
-      if (transectasError) throw new Error(transectasError);
+      if (campaniaError) throw new Error(campaniaError);
 
-      if (transectasData) {
-        const transectasMapeadas = mapTransectas(transectasData);
-        setTransectas(ordenarTransectas(transectasMapeadas));
+      if (campaniaData && campaniaData.transectas) {
+        // Las transectas ya vienen correctamente mapeadas de getCampaniaByIdAction
+        setTransectas(ordenarTransectas(campaniaData.transectas));
 
         // Recargar segmentos de transectas abiertas
         if (transectasAbiertas.size > 0) {

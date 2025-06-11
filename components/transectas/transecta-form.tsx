@@ -140,6 +140,9 @@ export function TransectaForm({
       toast.success("La transecta se ha creado correctamente");
       form.reset();
 
+      // Small delay to ensure database write is complete before refreshing
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       // Make sure to call onSuccess
       if (onSuccess) {
         try {
