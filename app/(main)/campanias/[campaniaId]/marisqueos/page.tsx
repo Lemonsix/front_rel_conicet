@@ -1,4 +1,3 @@
-"use server";
 import { getCampaniaByIdAction } from "@/lib/actions/campanias";
 import { getMarisqueosByCampaniaAction } from "@/lib/actions/marisqueos";
 import { notFound } from "next/navigation";

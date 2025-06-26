@@ -10,6 +10,7 @@ export type { Marisqueo, TallaMarisqueo };
 
 /**
  * Obtiene todos los marisqueos asociados a una campaña
+ * Notas de desarrollo: Tuve que hacer una funcion en la base de datos para obtener los marisqueos de una campania porque supabase hacia mal los joins.
  */
 export async function getMarisqueosByCampaniaAction(
   campaniaId: number
@@ -20,47 +21,11 @@ export async function getMarisqueosByCampaniaAction(
   const supabase = await createClient();
 
   try {
-    // Primero obtenemos las transectas de la campaña
-    const { data: transectas, error: transectasError } = await supabase
-      .from("transectas")
-      .select("id, nombre, fecha")
-      .eq("campania_id", campaniaId);
-
-    if (transectasError) {
-      console.error("Error al obtener transectas:", transectasError);
-      return { error: transectasError.message };
-    }
-
-    if (!transectas || transectas.length === 0) {
-      return { data: [] };
-    }
-
-    // Obtenemos los IDs de transectas
-    const transectasIds = transectas.map((t) => t.id);
-
-    // Obtenemos todos los segmentos asociados a esas transectas sin filtrar por el flag
-    const { data: segmentos, error: segmentosError } = await supabase
-      .from("segmentos")
-      .select("id, transecta_id, numero")
-      .in("transecta_id", transectasIds);
-
-    if (segmentosError) {
-      console.error("Error al obtener segmentos:", segmentosError);
-      return { error: segmentosError.message };
-    }
-
-    if (!segmentos || segmentos.length === 0) {
-      return { data: [] };
-    }
-
-    // Obtenemos los IDs de todos los segmentos
-    const segmentosIds = segmentos.map((s) => s.id);
-
-    // Consultamos la tabla de marisqueos
-    const { data: marisqueosData, error: marisqueosError } = await supabase
-      .from("marisqueos")
-      .select("*, buzo:buzo_id(id, nombre, apellido)")
-      .in("segmento_id", segmentosIds);
+    // Llamamos a la función de la base de datos
+    const { data: marisqueosData, error: marisqueosError } = await supabase.rpc(
+      "get_marisqueos_by_campania_id",
+      { p_campania_id: campaniaId }
+    );
 
     if (marisqueosError) {
       console.error("Error al obtener marisqueos:", marisqueosError);
@@ -73,7 +38,7 @@ export async function getMarisqueosByCampaniaAction(
     }
 
     // Obtener todas las tallas de todos los marisqueos en una sola consulta
-    const marisqueosIds = marisqueosData.map((m) => m.id);
+    const marisqueosIds = marisqueosData.map((m: any) => m.id);
     const { data: tallasData, error: tallasError } = await supabase
       .from("tallasmarisqueo2")
       .select("*")
@@ -99,36 +64,28 @@ export async function getMarisqueosByCampaniaAction(
       });
     }
 
-    // Creamos mapas para búsquedas rápidas
-    const transectasMap = new Map(transectas.map((t) => [t.id, t]));
-    const segmentosMap = new Map(segmentos.map((s) => [s.id, s]));
-
     // Transformamos los datos a nuestro formato de respuesta
     const marisqueosMapeados = marisqueosData.map((marisqueo: any) => {
-      const segmento = segmentosMap.get(marisqueo.segmento_id);
-      const transectaId = segmento?.transecta_id || 0;
-      const transecta = transectasMap.get(transectaId);
-      const buzoInfo = marisqueo.buzo;
-
       return {
         id: marisqueo.id,
         segmento_id: marisqueo.segmento_id,
-        transecta_id: transectaId,
+        transecta_id: marisqueo.transecta_id,
         buzo_id: marisqueo.buzo_id,
-        nombre_transecta: transecta?.nombre || `Transecta ${transectaId}`,
-        nombre_buzo: buzoInfo
-          ? `${buzoInfo.nombre} ${buzoInfo.apellido}`
-          : undefined,
-        numero_segmento: segmento?.numero || 0,
-        fecha: transecta?.fecha || new Date().toISOString().split("T")[0],
+        nombre_transecta:
+          marisqueo.nombre_transecta || `Transecta ${marisqueo.transecta_id}`,
+        nombre_buzo: marisqueo.nombre_buzo,
+        numero_segmento: marisqueo.numero_segmento || 0,
+        fecha: marisqueo.fecha || new Date().toISOString().split("T")[0],
         n_captura: marisqueo.n_captura,
         profundidad: marisqueo.profundidad,
         tiempo: marisqueo.tiempo,
         peso_muestra: marisqueo.peso_muestra,
         tiene_muestreo: marisqueo.tiene_muestreo,
-        observaciones: `Marisqueo ${marisqueo.n_captura} en segmento ${
-          segmento?.numero || 0
-        }`,
+        observaciones:
+          marisqueo.observaciones ||
+          `Marisqueo ${marisqueo.n_captura} en segmento ${
+            marisqueo.numero_segmento || 0
+          }`,
         tallas: tallasMap.get(marisqueo.id) || [],
       };
     });

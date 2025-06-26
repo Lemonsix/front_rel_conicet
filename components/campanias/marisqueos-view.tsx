@@ -1,10 +1,10 @@
 "use client";
 
+import React, { useState, useCallback } from "react";
 import { MarisqueosList } from "@/components/marisqueos/marisqueos-list";
 import { getMarisqueosByCampaniaAction } from "@/lib/actions/marisqueos";
 import { Marisqueo } from "@/lib/types/marisqueos";
 import { Campania } from "@/lib/types/campania";
-import { useState, useCallback } from "react";
 import { toast } from "sonner";
 
 interface MarisqueosViewProps {
@@ -16,7 +16,9 @@ export function MarisqueosView({
   campania,
   marisqueos: initialMarisqueos,
 }: MarisqueosViewProps) {
-  const [marisqueos, setMarisqueos] = useState<Marisqueo[]>(initialMarisqueos);
+  const [marisqueos, setMarisqueos] = useState<Marisqueo[]>(
+    initialMarisqueos || []
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const loadMarisqueos = useCallback(async () => {
