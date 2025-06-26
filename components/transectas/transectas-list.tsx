@@ -8,9 +8,21 @@ import { TransectaDetails } from "./transecta-details";
 
 interface TransectasListProps {
   transectas: Transecta[];
+  embarcaciones: Array<{
+    id: number;
+    nombre: string;
+    matricula: string;
+  }>;
+  buzos: Array<{
+    id: number;
+    nombre: string;
+    apellido: string;
+    rol: string;
+  }>;
   onTransectaOpen: (transectaId: number) => void;
   onTransectaClose: (transectaId: number) => void;
   onSegmentoCreado: () => void;
+  onTransectaUpdated: () => void;
   segmentosCargados: Record<number, Segmento[]>;
   cargandoSegmentos: Record<number, boolean>;
   onTransectaSelect: (transectaId: number | null) => void;
@@ -18,9 +30,12 @@ interface TransectasListProps {
 
 export function TransectasList({
   transectas,
+  embarcaciones,
+  buzos,
   onTransectaOpen,
   onTransectaClose,
   onSegmentoCreado,
+  onTransectaUpdated,
   segmentosCargados,
   cargandoSegmentos,
   onTransectaSelect,
@@ -95,8 +110,11 @@ export function TransectasList({
           <TransectaDetails
             transecta={selectedTransecta}
             segmentos={segmentosCargados[selectedTransectaId] || []}
+            embarcaciones={embarcaciones}
+            buzos={buzos}
             onBack={handleBack}
             onSegmentoCreado={onSegmentoCreado}
+            onTransectaUpdated={onTransectaUpdated}
             isLoading={cargandoSegmentos[selectedTransectaId] || false}
           />
         </div>

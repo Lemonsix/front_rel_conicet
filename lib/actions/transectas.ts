@@ -501,3 +501,43 @@ export async function getNombresTransectasAction(): Promise<{
 
   return { data: nombresUnicos };
 }
+
+export async function updateTransectaAction(
+  id: number,
+  formData: Partial<TablesInsert<"transectas">>
+): Promise<{
+  data?: Tables<"transectas">;
+  error?: string;
+}> {
+  const supabase = await createClient();
+
+  try {
+    const { data, error } = await supabase
+      .from("transectas")
+      .update(formData)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error al actualizar transecta:", error);
+      return { error: error.message };
+    }
+
+    // Revalidate paths
+    const campaniaPath = `/campanias/${formData.campania_id}`;
+    revalidatePath(campaniaPath);
+    revalidatePath(`/campanias`);
+    revalidatePath("/", "layout");
+
+    // Also revalidate the specific transecta path
+    if (data?.id) {
+      revalidatePath(`${campaniaPath}/transectas/${data.id}`);
+    }
+
+    return { data };
+  } catch (error) {
+    console.error("Error inesperado al actualizar transecta:", error);
+    return { error: String(error) };
+  }
+}

@@ -26,8 +26,15 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import {
   createTransectaAction,
+  updateTransectaAction,
   getNombresTransectasAction,
 } from "@/lib/actions/transectas";
+import { Transecta } from "@/lib/types/transecta";
+import {
+  combineDateTime,
+  safeGetTime,
+  safeGetDate,
+} from "@/lib/utils/datetime";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, ChevronsUpDown } from "lucide-react";
@@ -51,6 +58,7 @@ const formSchema = z.object({
 
 interface TransectaFormProps {
   campaniaId: number;
+  transecta?: Transecta; // Opcional para modo edición
   embarcaciones: Array<{
     id: number;
     nombre: string;
@@ -63,19 +71,24 @@ interface TransectaFormProps {
     rol: string;
   }>;
   onSuccess?: () => void;
+  onCancel?: () => void; // Para modo edición
 }
 
 export function TransectaForm({
   campaniaId,
+  transecta,
   embarcaciones,
   buzos,
   onSuccess,
+  onCancel,
 }: TransectaFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [nombresTransectas, setNombresTransectas] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [openBuzo, setOpenBuzo] = useState(false);
   const [filteredBuzos, setFilteredBuzos] = useState(buzos);
+
+  const isEditMode = !!transecta;
 
   useEffect(() => {
     async function fetchNombres() {
@@ -92,35 +105,86 @@ export function TransectaForm({
     fetchNombres();
   }, []);
 
+  // Función para convertir fecha ISO a formato date input
+  const formatDateForInput = (isoDate: string) => {
+    if (!isoDate) return "";
+
+    // Si ya está en formato YYYY-MM-DD, devolverlo tal como está
+    if (isoDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      return isoDate;
+    }
+
+    // Si es timestamp ISO, extraer solo la fecha
+    if (isoDate.includes("T")) {
+      return isoDate.split("T")[0];
+    }
+
+    // Si está en formato DD/MM/YYYY, convertir a YYYY-MM-DD
+    if (isoDate.includes("/")) {
+      const [day, month, year] = isoDate.split("/");
+      return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    }
+
+    // Intentar parsear como fecha y formatear
+    try {
+      const date = new Date(isoDate);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split("T")[0];
+      }
+    } catch (error) {
+      console.warn("Error parsing date:", isoDate);
+    }
+
+    return "";
+  };
+
+  // Función para convertir hora ISO a formato time input
+  const formatTimeForInput = (isoTime: string) => {
+    return safeGetTime(isoTime);
+  };
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      nombre: "",
-      observaciones: "",
-      fecha: "",
-      hora_inicio: "",
-      hora_fin: "",
-      largo_manguera: "",
-      sentido: "",
-      embarcacion_id: "",
-      buzo_id: "",
-      replica: false,
-    },
+    defaultValues: isEditMode
+      ? {
+          nombre: transecta.nombre,
+          observaciones: transecta.observaciones || "",
+          fecha: formatDateForInput(transecta.fecha),
+          hora_inicio: formatTimeForInput(transecta.horaInicio),
+          hora_fin: formatTimeForInput(transecta.horaFin),
+          largo_manguera: transecta.largoManguera?.toString() || "",
+          sentido: transecta.sentido,
+          embarcacion_id: transecta.embarcacionId?.toString() || "",
+          buzo_id: transecta.buzoId?.toString() || "",
+          replica: transecta.esReplica || false,
+        }
+      : {
+          nombre: "",
+          observaciones: "",
+          fecha: "",
+          hora_inicio: "",
+          hora_fin: "",
+          largo_manguera: "",
+          sentido: "",
+          embarcacion_id: "",
+          buzo_id: "",
+          replica: false,
+        },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setIsLoading(true);
 
-      // Crear timestamps combinando fecha y hora
-      const hora_inicio = new Date(
-        `${values.fecha}T${values.hora_inicio}`
-      ).toISOString();
-      const hora_fin = new Date(
-        `${values.fecha}T${values.hora_fin}`
-      ).toISOString();
+      // Usar las funciones de datetime.ts para crear timestamps seguros
+      const hora_inicio = combineDateTime(values.fecha, values.hora_inicio);
+      const hora_fin = combineDateTime(values.fecha, values.hora_fin);
 
-      const { data, error } = await createTransectaAction({
+      if (!hora_inicio || !hora_fin) {
+        throw new Error("Error al procesar las fechas y horas");
+      }
+
+      const formData = {
         ...values,
         hora_inicio,
         hora_fin,
@@ -133,16 +197,38 @@ export function TransectaForm({
         buzo_id: values.buzo_id ? parseInt(values.buzo_id) : undefined,
         campania_id: campaniaId,
         replica: values.replica,
-      } as any);
+      } as any;
+
+      let result;
+      if (isEditMode) {
+        result = await updateTransectaAction(transecta.id, formData);
+      } else {
+        result = await createTransectaAction(formData);
+      }
+
+      const { data, error } = result;
 
       if (error) {
-        console.error("Error al crear transecta:", error);
+        console.error(
+          `Error al ${isEditMode ? "actualizar" : "crear"} transecta:`,
+          error
+        );
         throw new Error(error);
       }
 
-      console.log("Transecta creada correctamente:", data);
-      toast.success("La transecta se ha creado correctamente");
-      form.reset();
+      console.log(
+        `Transecta ${isEditMode ? "actualizada" : "creada"} correctamente:`,
+        data
+      );
+      toast.success(
+        `La transecta se ha ${
+          isEditMode ? "actualizado" : "creado"
+        } correctamente`
+      );
+
+      if (!isEditMode) {
+        form.reset();
+      }
 
       // Small delay to ensure database write is complete before refreshing
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -187,7 +273,7 @@ export function TransectaForm({
                         {field.value
                           ? nombresTransectas.find(
                               (nombre) => nombre === field.value
-                            )
+                            ) || field.value
                           : "Selecciona un nombre..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
@@ -505,10 +591,33 @@ export function TransectaForm({
           )}
         />
 
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Creando..." : "Crear transecta"}
-        </Button>
+        <div className="flex gap-2">
+          <Button type="submit" disabled={isLoading}>
+            {isLoading
+              ? `${isEditMode ? "Actualizando" : "Creando"}...`
+              : `${isEditMode ? "Actualizar" : "Crear"} transecta`}
+          </Button>
+          {isEditMode && onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancelar
+            </Button>
+          )}
+        </div>
       </form>
     </Form>
   );
+}
+
+// Componente específico para crear transectas
+export function CrearTransectaForm(
+  props: Omit<TransectaFormProps, "transecta">
+) {
+  return <TransectaForm {...props} />;
+}
+
+// Componente específico para editar transectas
+export function EditarTransectaForm(
+  props: TransectaFormProps & { transecta: Transecta }
+) {
+  return <TransectaForm {...props} />;
 }

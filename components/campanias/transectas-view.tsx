@@ -191,9 +191,12 @@ export function TransectasView({ embarcaciones, buzos }: TransectasViewProps) {
         <div className="overflow-hidden h-full min-h-0">
           <TransectasList
             transectas={transectas}
+            embarcaciones={embarcaciones}
+            buzos={buzos}
             onTransectaOpen={handleTransectaOpen}
             onTransectaClose={handleTransectaClose}
             onSegmentoCreado={handleSegmentoCreado}
+            onTransectaUpdated={refreshTransectas}
             segmentosCargados={segmentosCargados}
             cargandoSegmentos={cargandoSegmentos}
             onTransectaSelect={setSelectedTransectaId}

@@ -12,18 +12,36 @@ interface TransectaDetailViewProps {
   campania: Campania;
   transecta: Transecta;
   segmentos: Segmento[];
+  embarcaciones: Array<{
+    id: number;
+    nombre: string;
+    matricula: string;
+  }>;
+  buzos: Array<{
+    id: number;
+    nombre: string;
+    apellido: string;
+    rol: string;
+  }>;
 }
 
 export function TransectaDetailView({
   campania,
   transecta,
   segmentos: initialSegmentos,
+  embarcaciones,
+  buzos,
 }: TransectaDetailViewProps) {
   const [segmentos, setSegmentos] = useState<Segmento[]>(initialSegmentos);
 
   const handleSegmentoCreado = useCallback(() => {
     // En este caso, podríamos recargar la página o hacer una consulta fresh
     // Por ahora, mantenemos la funcionalidad básica
+    window.location.reload();
+  }, []);
+
+  const handleTransectaUpdated = useCallback(() => {
+    // Recargar la página para obtener los datos actualizados
     window.location.reload();
   }, []);
 
@@ -34,8 +52,11 @@ export function TransectaDetailView({
         <TransectaDetails
           transecta={transecta}
           segmentos={segmentos}
+          embarcaciones={embarcaciones}
+          buzos={buzos}
           onBack={() => {}} // No necesario en esta vista
           onSegmentoCreado={handleSegmentoCreado}
+          onTransectaUpdated={handleTransectaUpdated}
           isLoading={false}
         />
       </div>
