@@ -88,7 +88,6 @@ const formSchema = z.object({
   profundidad: z.number().min(0).optional(),
   tiempo: z.number().min(0).optional(),
   pesoMuestra: z.number().min(0).optional(),
-  observaciones: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -136,7 +135,6 @@ export function NuevoMarisqueoForm({
       profundidad: 0,
       tiempo: 0,
       pesoMuestra: 0,
-      observaciones: "",
     },
   });
 
@@ -304,7 +302,6 @@ export function NuevoMarisqueoForm({
         profundidad: values.profundidad,
         tiempo: values.tiempo,
         peso_muestra: values.pesoMuestra,
-        observaciones: values.observaciones,
       });
 
       if (result.error) {
@@ -666,21 +663,6 @@ export function NuevoMarisqueoForm({
                 )}
               />
             </div>
-
-            {/* Observaciones */}
-            <FormField
-              control={form.control}
-              name="observaciones"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Observaciones</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Observaciones adicionales" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <div className="flex justify-end">
               <Button

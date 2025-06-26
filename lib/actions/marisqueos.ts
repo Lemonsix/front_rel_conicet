@@ -236,7 +236,6 @@ export async function createMarisqueoAction(formData: {
   profundidad?: number;
   tiempo?: number;
   peso_muestra?: number;
-  observaciones?: string;
 }): Promise<{ data?: Tables<"marisqueos">; error?: string }> {
   const supabase = await createClient();
 
