@@ -13,8 +13,10 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { Marisqueo } from "@/lib/actions/marisqueos";
+import { Marisqueo } from "@/lib/types/marisqueos";
 import { NuevoMarisqueoForm } from "./nuevo-marisqueo-form";
+import { EditarMarisqueoForm } from "./editar-marisqueo-form";
+import { TallasMarisqueo } from "./tallas-marisqueo";
 
 interface MarisqueosListProps {
   marisqueos: Marisqueo[];
@@ -100,6 +102,8 @@ export function MarisqueosList({
                 <TableHead>Profundidad</TableHead>
                 <TableHead>Tiempo</TableHead>
                 <TableHead>Peso</TableHead>
+                <TableHead>Tallas</TableHead>
+                <TableHead>Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -112,11 +116,31 @@ export function MarisqueosList({
                   <TableCell>{marisqueo.nombre_buzo || "-"}</TableCell>
                   <TableCell>{marisqueo.n_captura}</TableCell>
                   <TableCell>
-                    {new Date(marisqueo.fecha).toLocaleDateString()}
+                    {new Date(marisqueo.fecha + "T00:00:00").toLocaleDateString(
+                      "es-ES",
+                      {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                      }
+                    )}
                   </TableCell>
                   <TableCell>{marisqueo.profundidad || "-"}</TableCell>
                   <TableCell>{marisqueo.tiempo || "-"}</TableCell>
                   <TableCell>{marisqueo.peso_muestra || "-"}</TableCell>
+                  <TableCell>
+                    <TallasMarisqueo
+                      marisqueoId={marisqueo.id}
+                      initialTallas={marisqueo.tallas || []}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <EditarMarisqueoForm
+                      marisqueo={marisqueo}
+                      campaniaId={campaniaId}
+                      onSuccess={onMarisqueoAdded}
+                    />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

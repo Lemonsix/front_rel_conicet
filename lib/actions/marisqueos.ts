@@ -3,24 +3,10 @@
 import { createClient } from "@/lib/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { Tables } from "@/lib/types/database.types";
+import { Marisqueo, TallaMarisqueo } from "@/lib/types/marisqueos";
 
-// Definir la estructura de un Marisqueo
-export interface Marisqueo {
-  id: number;
-  segmento_id: number;
-  transecta_id: number;
-  buzo_id: number;
-  nombre_transecta: string;
-  nombre_buzo?: string;
-  numero_segmento: number;
-  fecha: string;
-  n_captura: number;
-  profundidad?: number | null;
-  tiempo?: number | null;
-  peso_muestra?: number | null;
-  tiene_muestreo?: boolean | null;
-  observaciones?: string;
-}
+// Re-exportar para compatibilidad con componentes que ya lo importan
+export type { Marisqueo, TallaMarisqueo };
 
 /**
  * Obtiene todos los marisqueos asociados a una campaña
@@ -86,6 +72,33 @@ export async function getMarisqueosByCampaniaAction(
       return { data: [] };
     }
 
+    // Obtener todas las tallas de todos los marisqueos en una sola consulta
+    const marisqueosIds = marisqueosData.map((m) => m.id);
+    const { data: tallasData, error: tallasError } = await supabase
+      .from("tallasmarisqueo2")
+      .select("*")
+      .in("marisqueo_id", marisqueosIds)
+      .order("talla", { ascending: true });
+
+    if (tallasError) {
+      console.error("Error al obtener tallas:", tallasError);
+      // No retornamos error por tallas, seguimos sin ellas
+    }
+
+    // Agrupar tallas por marisqueo_id
+    const tallasMap = new Map<number, TallaMarisqueo[]>();
+    if (tallasData) {
+      tallasData.forEach((talla: any) => {
+        const marisqueoTallas = tallasMap.get(talla.marisqueo_id) || [];
+        marisqueoTallas.push({
+          marisqueo_id: talla.marisqueo_id,
+          talla: talla.talla,
+          frecuencia: talla.frecuencia,
+        });
+        tallasMap.set(talla.marisqueo_id, marisqueoTallas);
+      });
+    }
+
     // Creamos mapas para búsquedas rápidas
     const transectasMap = new Map(transectas.map((t) => [t.id, t]));
     const segmentosMap = new Map(segmentos.map((s) => [s.id, s]));
@@ -116,6 +129,7 @@ export async function getMarisqueosByCampaniaAction(
         observaciones: `Marisqueo ${marisqueo.n_captura} en segmento ${
           segmento?.numero || 0
         }`,
+        tallas: tallasMap.get(marisqueo.id) || [],
       };
     });
 
@@ -188,6 +202,33 @@ export async function getMarisqueosByTransectaAction(
       return { data: [] };
     }
 
+    // Obtener todas las tallas de todos los marisqueos en una sola consulta
+    const marisqueosIds = marisqueosData.map((m) => m.id);
+    const { data: tallasData, error: tallasError } = await supabase
+      .from("tallasmarisqueo2")
+      .select("*")
+      .in("marisqueo_id", marisqueosIds)
+      .order("talla", { ascending: true });
+
+    if (tallasError) {
+      console.error("Error al obtener tallas:", tallasError);
+      // No retornamos error por tallas, seguimos sin ellas
+    }
+
+    // Agrupar tallas por marisqueo_id
+    const tallasMap = new Map<number, TallaMarisqueo[]>();
+    if (tallasData) {
+      tallasData.forEach((talla: any) => {
+        const marisqueoTallas = tallasMap.get(talla.marisqueo_id) || [];
+        marisqueoTallas.push({
+          marisqueo_id: talla.marisqueo_id,
+          talla: talla.talla,
+          frecuencia: talla.frecuencia,
+        });
+        tallasMap.set(talla.marisqueo_id, marisqueoTallas);
+      });
+    }
+
     // Creamos un mapa para buscar segmentos rápidamente
     const segmentosMap = new Map(segmentos.map((s) => [s.id, s]));
 
@@ -215,6 +256,7 @@ export async function getMarisqueosByTransectaAction(
         observaciones: `Marisqueo ${marisqueo.n_captura} en segmento ${
           segmento?.numero || 0
         }`,
+        tallas: tallasMap.get(marisqueo.id) || [],
       };
     });
 
@@ -315,6 +357,86 @@ export async function checkMarisqueoCapturaAvailabilityAction(
     return { available: count === 0 };
   } catch (error) {
     console.error("Error al verificar disponibilidad de captura:", error);
+    return { error: String(error) };
+  }
+}
+
+/**
+ * Actualiza un marisqueo existente
+ */
+export async function updateMarisqueoAction(
+  marisqueoId: number,
+  formData: {
+    segmento_id?: number;
+    buzo_id?: number;
+    n_captura?: number;
+    coordenadas?: string;
+    profundidad?: number;
+    tiempo?: number;
+    peso_muestra?: number;
+  }
+): Promise<{ data?: Tables<"marisqueos">; error?: string }> {
+  const supabase = await createClient();
+
+  try {
+    const { data, error } = await supabase
+      .from("marisqueos")
+      .update(formData)
+      .eq("id", marisqueoId)
+      .select()
+      .single();
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    revalidatePath("/campanias");
+    return { data };
+  } catch (error) {
+    console.error("Error al actualizar marisqueo:", error);
+    return { error: String(error) };
+  }
+}
+
+/**
+ * Obtiene un marisqueo específico por su ID con información relacionada
+ */
+export async function getMarisqueoByIdAction(
+  marisqueoId: number
+): Promise<{ data?: any; error?: string }> {
+  const supabase = await createClient();
+
+  try {
+    const { data, error } = await supabase
+      .from("marisqueos")
+      .select(
+        `
+        *,
+        segmento:segmento_id(
+          id,
+          numero,
+          transecta:transecta_id(
+            id,
+            nombre
+          )
+        ),
+        buzo:buzo_id(
+          id,
+          nombre,
+          apellido
+        )
+      `
+      )
+      .eq("id", marisqueoId)
+      .single();
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    return { data };
+  } catch (error) {
+    console.error("Error al obtener marisqueo:", error);
     return { error: String(error) };
   }
 }

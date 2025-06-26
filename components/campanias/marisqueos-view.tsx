@@ -1,10 +1,8 @@
 "use client";
 
 import { MarisqueosList } from "@/components/marisqueos/marisqueos-list";
-import {
-  getMarisqueosByCampaniaAction,
-  Marisqueo,
-} from "@/lib/actions/marisqueos";
+import { getMarisqueosByCampaniaAction } from "@/lib/actions/marisqueos";
+import { Marisqueo } from "@/lib/types/marisqueos";
 import { Campania } from "@/lib/types/campania";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
