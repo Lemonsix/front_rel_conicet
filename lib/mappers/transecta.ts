@@ -24,6 +24,7 @@ export type TransectaWithRelations = {
   campania_id: number;
   coordenadas_inicio: any | null;
   coordenadas_fin: any | null;
+  replica: boolean | null;
   embarcacion?: {
     id: number;
     nombre: string;
@@ -157,6 +158,7 @@ export function mapTransecta(transecta: TransectaWithRelations): Transecta {
     embarcacion,
     buzo,
     segmentos: segmentos, // Garantizamos que nunca es undefined
+    esReplica: transecta.replica || false,
   };
 
   return transectaMapeada;

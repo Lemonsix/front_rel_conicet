@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -45,6 +46,7 @@ const formSchema = z.object({
   sentido: z.string().min(1, "El sentido es requerido"),
   embarcacion_id: z.string().optional(),
   buzo_id: z.string().optional(),
+  replica: z.boolean().default(false),
 });
 
 interface TransectaFormProps {
@@ -102,6 +104,7 @@ export function TransectaForm({
       sentido: "",
       embarcacion_id: "",
       buzo_id: "",
+      replica: false,
     },
   });
 
@@ -129,6 +132,7 @@ export function TransectaForm({
           : undefined,
         buzo_id: values.buzo_id ? parseInt(values.buzo_id) : undefined,
         campania_id: campaniaId,
+        replica: values.replica,
       } as any);
 
       if (error) {
@@ -476,6 +480,27 @@ export function TransectaForm({
                 />
               </FormControl>
               <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="replica"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>Es réplica</FormLabel>
+                <p className="text-sm text-muted-foreground">
+                  Marcar si esta transecta es una réplica de otra transecta
+                </p>
+              </div>
             </FormItem>
           )}
         />

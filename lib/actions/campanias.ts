@@ -108,6 +108,7 @@ export async function getCampaniaByIdAction(campaniaId: number): Promise<{
       buzo_id,
       campania_id,
       largo_manguera,
+      replica,
       embarcacion:embarcaciones!transectas_fk_embarcaciones(
         id,
         nombre,

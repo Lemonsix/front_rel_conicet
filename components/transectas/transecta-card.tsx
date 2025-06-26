@@ -60,7 +60,16 @@ export function TransectaCard({
         <CardContent className="flex flex-row items-start py-3 gap-2 max-w-full">
           {/* Section 1: Transecta Name */}
           <div className="min-w-[120px] max-w-[150px] flex-shrink-0">
-            <h3 className="font-medium text-lg truncate">{transecta.nombre}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-medium text-lg truncate">
+                {transecta.nombre}
+              </h3>
+              {transecta.esReplica && (
+                <Badge variant="outline" className="text-xs border-orange-400">
+                  Réplica
+                </Badge>
+              )}
+            </div>
             <div className="flex flex-wrap gap-1 mt-1">
               {hasMarisqueo && (
                 <Badge variant="secondary" className="text-xs">

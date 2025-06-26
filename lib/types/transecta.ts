@@ -24,4 +24,5 @@ export interface Transecta {
   planillero?: Persona;
   planilleroId?: number;
   segmentos?: Segmento[];
+  esReplica?: boolean;
 }

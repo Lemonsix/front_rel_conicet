@@ -41,6 +41,7 @@ export async function getTransectasByCampaniaAction(
         embarcacion_id,
         buzo_id,
         campania_id,
+        replica,
         embarcacion:embarcaciones!transectas_fk_embarcaciones(
           id,
           nombre,
@@ -392,6 +393,7 @@ export async function getTransectaByIdAction(transectaId: number): Promise<{
         embarcacion_id,
         buzo_id,
         campania_id,
+        replica,
         embarcacion:embarcaciones!transectas_fk_embarcaciones(
           id,
           nombre,

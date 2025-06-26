@@ -40,15 +40,7 @@ type CampaniaWithTransectas = {
 function mapTransectaWithSegments(transecta: any): Transecta {
   if (!transecta || typeof transecta !== "object") {
     console.error("Se recibió un valor de transecta inválido:", transecta);
-    // Devolver un objeto Transecta con valores mínimos para evitar errores
-    return {
-      id: 0,
-      nombre: "",
-      fecha: "",
-      horaInicio: "",
-      horaFin: "",
-      sentido: "",
-    };
+    throw new Error("Valor de transecta inválido");
   }
 
   // Mapear buzo si existe
@@ -154,6 +146,7 @@ function mapTransectaWithSegments(transecta: any): Transecta {
     campaniaId: transecta.campania_id || 0,
     embarcacion,
     buzo,
+    esReplica: transecta.replica || false,
     // Si hay cantidadSegmentos, crear un array placeholder para indicar la cantidad
     // Esto permite que getSegmentCount funcione correctamente
     segmentos:
