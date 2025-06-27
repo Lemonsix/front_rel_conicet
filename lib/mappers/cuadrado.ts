@@ -49,5 +49,6 @@ export function mapCuadrado(cuadradoDb: Tables<"cuadrados">): Cuadrado {
     conteo: cuadradoDb.conteo || 0,
     tamanio: cuadradoDb.tamanio,
     timestamp: cuadradoDb.timestamp || new Date().toISOString(),
+    muestreos: [], // Initialize as empty array, muestreos data loaded separately
   };
 }
