@@ -12,4 +12,15 @@ export interface Cuadrado {
   conteo: number;
   tamanio: number;
   timestamp: string;
+  muestreos: MuestreoCuadrado[];
 }
+
+
+export type MuestreoCuadrado = {
+  id: number;
+  cuadrado_id: number;
+  talla: number | null;
+  peso_tot: number | null;
+  peso_val: number | null;
+  peso_callo: number | null;
+};

@@ -68,7 +68,7 @@ export type Database = {
           conteo?: number | null
           coordenadas_fin?: unknown | null
           coordenadas_inicio?: unknown | null
-          id: number
+          id?: number
           profundidad_fin?: number | null
           profundidad_inicio?: number | null
           replica: number
@@ -96,6 +96,41 @@ export type Database = {
             columns: ["segmento_id"]
             isOneToOne: false
             referencedRelation: "segmentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cuadrados_muestreos: {
+        Row: {
+          cuadrado_id: number
+          id: number
+          peso_callo: number | null
+          peso_tot: number | null
+          peso_val: number | null
+          talla: number | null
+        }
+        Insert: {
+          cuadrado_id: number
+          id?: number
+          peso_callo?: number | null
+          peso_tot?: number | null
+          peso_val?: number | null
+          talla?: number | null
+        }
+        Update: {
+          cuadrado_id?: number
+          id?: number
+          peso_callo?: number | null
+          peso_tot?: number | null
+          peso_val?: number | null
+          talla?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_quadrat"
+            columns: ["cuadrado_id"]
+            isOneToOne: false
+            referencedRelation: "cuadrados"
             referencedColumns: ["id"]
           },
         ]
@@ -137,7 +172,7 @@ export type Database = {
         Insert: {
           buzo_id: number
           coordenadas?: unknown | null
-          id: number
+          id?: number
           n_captura: number
           peso_muestra?: number | null
           profundidad?: number | null
@@ -171,41 +206,6 @@ export type Database = {
             columns: ["segmento_id"]
             isOneToOne: false
             referencedRelation: "segmentos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      muestreos_cuadrados: {
-        Row: {
-          id_ind: number
-          peso_callo: number | null
-          peso_tot: number | null
-          peso_val: number | null
-          quadrat_id: number
-          talla: number | null
-        }
-        Insert: {
-          id_ind: number
-          peso_callo?: number | null
-          peso_tot?: number | null
-          peso_val?: number | null
-          quadrat_id: number
-          talla?: number | null
-        }
-        Update: {
-          id_ind?: number
-          peso_callo?: number | null
-          peso_tot?: number | null
-          peso_val?: number | null
-          quadrat_id?: number
-          talla?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_quadrat"
-            columns: ["quadrat_id"]
-            isOneToOne: false
-            referencedRelation: "cuadrados"
             referencedColumns: ["id"]
           },
         ]
@@ -1076,6 +1076,24 @@ export type Database = {
           tiene_marisqueos_bool: boolean
           tiene_cuadrados_bool: boolean
           segment_position: string
+        }[]
+      }
+      get_marisqueos_by_campania_id: {
+        Args: { p_campania_id: number }
+        Returns: {
+          id: number
+          segmento_id: number
+          transecta_id: number
+          buzo_id: number
+          nombre_transecta: string
+          nombre_buzo: string
+          numero_segmento: number
+          fecha: string
+          n_captura: number
+          profundidad: number
+          tiempo: number
+          peso_muestra: number
+          tiene_muestreo: boolean
         }[]
       }
       get_proj4_from_srid: {

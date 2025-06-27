@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Cuadrado } from "@/lib/actions/cuadrados";
 import { NuevoCuadradoForm } from "./nuevo-cuadrado-form";
+import { MuestreosCuadrado } from "./muestreos-cuadrado";
 
 interface CuadradosListProps {
   cuadrados: Cuadrado[];
@@ -99,6 +100,7 @@ export function CuadradosList({
                 <TableHead>Profundidad Inicial</TableHead>
                 <TableHead>Profundidad Final</TableHead>
                 <TableHead>Conteo</TableHead>
+                <TableHead>Muestreos</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -116,6 +118,9 @@ export function CuadradosList({
                   <TableCell>{cuadrado.profundidad_inicio || "-"}</TableCell>
                   <TableCell>{cuadrado.profundidad_fin || "-"}</TableCell>
                   <TableCell>{cuadrado.conteo || "-"}</TableCell>
+                  <TableCell>
+                    <MuestreosCuadrado cuadradoId={cuadrado.id} />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
