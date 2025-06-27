@@ -42,6 +42,7 @@ import {
   calcularDistanciaHaversine,
   aseguraCoordenada,
 } from "@/lib/utils/coordinates";
+import { Badge } from "../ui/badge";
 
 // Definimos los tipos para el formulario
 type FormLatitud = {
@@ -380,6 +381,9 @@ export function NuevoCuadradoForm({
                             value={transecta.id.toString()}
                           >
                             {transecta.nombre}
+                            {transecta.esReplica && (
+                              <Badge variant="outline" className="border-orange-500">Replica</Badge>
+                            )}
                           </SelectItem>
                         ))}
                       </SelectContent>
