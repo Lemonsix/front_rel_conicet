@@ -196,151 +196,148 @@ export function MuestreosCuadrado({
           <span className="ml-1 text-xs">Muestreos ({muestreos.length})</span>
         </Button>
       </CollapsibleTrigger>
+
       <CollapsibleContent className="mt-2">
-        <div className="space-y-2 border border-gray-200 rounded-md p-3 bg-gray-50/50">
-          {loading && (
-            <div className="text-center text-gray-500 text-sm">
-              Cargando muestreos...
-            </div>
-          )}
+        <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Cargando muestreos...</p>
+          ) : (
+            <>
+              {muestreos.length > 0 ? (
+                <div className="space-y-2">
+                  {muestreos.map((muestreo) => (
+                    <div key={muestreo.id} className="flex items-center gap-2">
+                      {editingMuestreo === muestreo.id ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground">
+                              ID {muestreo.id}:
+                            </span>
+                            <Input
+                              type="number"
+                              placeholder="Talla"
+                              value={editTalla || ""}
+                              onChange={(e) =>
+                                setEditTalla(parseInt(e.target.value) || 0)
+                              }
+                              className="w-20 h-8"
+                              min={1}
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              mm
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleUpdateMuestreo}
+                              disabled={saving}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Save className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleCancelEdit}
+                              disabled={saving}
+                              className="h-8 w-8 p-0"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 flex-1">
+                          <Badge variant="outline" className="text-xs">
+                            ID {muestreo.id}
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            {muestreo.talla || "-"}mm
+                          </Badge>
+                          <div className="flex items-center gap-1 ml-auto">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleStartEdit(muestreo)}
+                              disabled={saving || editingMuestreo !== null}
+                              className="h-6 w-6 p-0"
+                            >
+                              <Edit2 className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteMuestreo(muestreo.id)}
+                              disabled={saving || editingMuestreo !== null}
+                              className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No hay muestreos registrados
+                </p>
+              )}
 
-          {!loading && muestreos.length === 0 && (
-            <div className="text-center text-gray-500 text-sm">
-              No hay muestreos registrados
-            </div>
-          )}
-
-          {!loading && muestreos.length > 0 && (
-            <div className="space-y-2">
-              {/* Headers */}
-              <div className="grid grid-cols-3 gap-2 text-xs font-medium text-gray-600 border-b pb-1">
-                <div>ID</div>
-                <div>Talla (mm)</div>
-                <div>Acciones</div>
-              </div>
-
-              {/* Lista de muestreos */}
-              {muestreos.map((muestreo) => (
-                <div key={muestreo.id} className="grid grid-cols-3 gap-2 items-center">
-                  {editingMuestreo === muestreo.id ? (
-                    // Modo edición
-                    <>
-                      <div className="text-xs">{muestreo.id}</div>
+              {showNewForm ? (
+                <div className="border-t pt-2 mt-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <Input
                         type="number"
-                        value={editTalla}
-                        onChange={(e) => setEditTalla(parseFloat(e.target.value) || 0)}
-                        className="text-xs h-7"
-                        step="0.1"
-                        placeholder="mm"
+                        placeholder="Talla"
+                        value={newTalla || ""}
+                        onChange={(e) =>
+                          setNewTalla(parseInt(e.target.value) || 0)
+                        }
+                        className="w-20 h-8"
+                        min={1}
                       />
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleUpdateMuestreo}
-                          disabled={saving}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Save className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleCancelEdit}
-                          disabled={saving}
-                          className="h-6 w-6 p-0"
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    // Modo vista
-                    <>
-                      <div className="text-xs">{muestreo.id}</div>
-                      <div className="text-xs">{muestreo.talla || "-"}</div>
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleStartEdit(muestreo)}
-                          disabled={saving || editingMuestreo !== null}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Edit2 className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDeleteMuestreo(muestreo.id)}
-                          disabled={saving || editingMuestreo !== null}
-                          className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </>
-                  )}
+                      <span className="text-xs text-muted-foreground">mm</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCreateMuestreo}
+                        disabled={saving}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Save className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCancelNew}
+                        disabled={saving}
+                        className="h-8 w-8 p-0"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* Formulario para nuevo muestreo */}
-          {showNewForm && (
-            <div className="border-t pt-2 mt-2">
-              <div className="text-xs font-medium text-gray-600 mb-2">
-                Nueva Talla
-              </div>
-              <div className="grid grid-cols-3 gap-2 items-center">
-                <div className="text-xs text-gray-500">Auto</div>
-                <Input
-                  type="number"
-                  value={newTalla}
-                  onChange={(e) => setNewTalla(parseFloat(e.target.value) || 0)}
-                  placeholder="Talla (mm)"
-                  className="text-xs h-7"
-                  step="0.1"
-                />
-                <div className="flex gap-1">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleCreateMuestreo}
-                    disabled={saving}
-                    className="h-6 w-6 p-0"
-                  >
-                    <Save className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleCancelNew}
-                    disabled={saving}
-                    className="h-6 w-6 p-0"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Botón para agregar nuevo muestreo */}
-          {!showNewForm && (
-            <div className="flex justify-center pt-2 border-t">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setShowNewForm(true)}
-                disabled={saving || editingMuestreo !== null}
-                className="text-xs h-7"
-              >
-                <Plus className="h-3 w-3 mr-1" />
-                Agregar Muestreo
-              </Button>
-            </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowNewForm(true)}
+                  disabled={saving || editingMuestreo !== null}
+                  className="h-8 w-full border-dashed border"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Agregar muestreo
+                </Button>
+              )}
+            </>
           )}
         </div>
       </CollapsibleContent>
